@@ -1,11 +1,30 @@
 """
 Evaluation metrics for FER (Facial Emotion Recognition).
-Computes Accuracy and macro-F1 consistent with RAF-DB / AffectNet protocols.
+Computes Accuracy and macro-F1 (RAF-DB / AffectNet protocol).
+
+Falls back to a pure-torch implementation when scikit-learn is unavailable,
+so the codebase runs in minimal environments.
 """
 
 import torch
-import numpy as np
-from sklearn.metrics import f1_score, accuracy_score
+
+try:
+    from sklearn.metrics import f1_score, accuracy_score
+    _HAS_SKLEARN = True
+except ImportError:                                    # pragma: no cover
+    _HAS_SKLEARN = False
+
+
+def _macro_f1_torch(preds: torch.Tensor, targets: torch.Tensor, num_classes: int) -> float:
+    """Pure-torch macro-F1 (unweighted mean of per-class F1)."""
+    f1s = []
+    for c in range(num_classes):
+        tp = ((preds == c) & (targets == c)).sum().float()
+        fp = ((preds == c) & (targets != c)).sum().float()
+        fn = ((preds != c) & (targets == c)).sum().float()
+        denom = 2 * tp + fp + fn
+        f1s.append((2 * tp / denom) if denom > 0 else torch.tensor(0.0))
+    return float(torch.stack(f1s).mean()) * 100.0
 
 
 def compute_metrics(preds: torch.Tensor, targets: torch.Tensor) -> dict:
@@ -14,18 +33,22 @@ def compute_metrics(preds: torch.Tensor, targets: torch.Tensor) -> dict:
         preds   : (N,) predicted class indices
         targets : (N,) ground-truth class indices
     Returns:
-        dict with 'accuracy' and 'macro_f1'
+        {'accuracy': %, 'macro_f1': %}
     """
-    p = preds.cpu().numpy()
-    t = targets.cpu().numpy()
-    acc = accuracy_score(t, p) * 100.0
-    f1 = f1_score(t, p, average="macro") * 100.0
-    return {"accuracy": acc, "macro_f1": f1}
+    if _HAS_SKLEARN:
+        p, t = preds.cpu().numpy(), targets.cpu().numpy()
+        return {
+            "accuracy": accuracy_score(t, p) * 100.0,
+            "macro_f1": f1_score(t, p, average="macro") * 100.0,
+        }
+    acc = (preds == targets).float().mean().item() * 100.0
+    num_classes = int(max(preds.max(), targets.max()).item()) + 1
+    return {"accuracy": acc, "macro_f1": _macro_f1_torch(preds, targets, num_classes)}
 
 
 def orthogonality_check(e: torch.Tensor, eps: float = 1e-3) -> float:
     """
-    Verify Gram-Schmidt guarantee: <e_i, e_j> ~ 0 for i != j.
+    Verify the Gram-Schmidt guarantee  <e_i, e_j> ~ 0 for i != j.
 
     Args:
         e : (B, K, D) orthonormalized subspace vectors
@@ -33,7 +56,20 @@ def orthogonality_check(e: torch.Tensor, eps: float = 1e-3) -> float:
         mean absolute off-diagonal inner product (should be << eps)
     """
     B, K, D = e.shape
-    G = torch.bmm(e, e.transpose(1, 2))                 # (B, K, K)
+    G = torch.bmm(e, e.transpose(1, 2))                 # (B, K, K) Gram matrices
     mask = ~torch.eye(K, dtype=torch.bool, device=e.device).unsqueeze(0)
     off_diag = G[mask.expand(B, -1, -1)]
     return off_diag.abs().mean().item()
+
+
+def margin_check(e: torch.Tensor) -> float:
+    """
+    Verify Proposition 1: ||e_i - e_j||^2 == 2 for all i != j.
+    Returns the mean squared pairwise distance over off-diagonal pairs.
+    """
+    B, K, D = e.shape
+    # ||e_i - e_j||^2 = 2 - 2<e_i,e_j> for unit vectors
+    G = torch.bmm(e, e.transpose(1, 2))                 # (B, K, K)
+    dist2 = 2.0 - 2.0 * G
+    mask = ~torch.eye(K, dtype=torch.bool, device=e.device).unsqueeze(0)
+    return dist2[mask.expand(B, -1, -1)].mean().item()

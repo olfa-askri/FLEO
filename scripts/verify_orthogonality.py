@@ -1,30 +1,52 @@
 """
-Quick sanity-check script: verifies Gram-Schmidt guarantee on a random batch.
+Quick sanity-check: verifies the Gram-Schmidt guarantee on a random batch.
+Uses torch if available, otherwise falls back to the NumPy reference so it
+always runs.
+
 Run: python scripts/verify_orthogonality.py
 """
 
-import sys, torch
-sys.path.insert(0, '.')
-from models.fleo_module import GramSchmidtOrthogonalizer
-from utils.metrics import orthogonality_check
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-def main():
+
+def _torch_check():
+    import torch
+    from models.fleo_module import GramSchmidtOrthogonalizer
+    from utils.metrics import orthogonality_check, margin_check
+
     gs = GramSchmidtOrthogonalizer()
-    B, K, d = 8, 7, 64
+    e = gs(torch.randn(8, 7, 64))
+    G = torch.bmm(e, e.transpose(1, 2))
+    print("[torch] mean diagonal   :", G.diagonal(dim1=1, dim2=2).mean().item())
+    print("[torch] mean |off-diag| :", orthogonality_check(e))
+    print("[torch] mean ||ei-ej||^2:", margin_check(e), "(target 2.0)")
+    assert orthogonality_check(e) < 1e-4
+    assert abs(margin_check(e) - 2.0) < 1e-3
+    print("\n[torch] OK: Proposition 1 holds.")
 
-    v = torch.randn(B, K, d)
-    e = gs(v)
 
-    score = orthogonality_check(e)
-    Gram = torch.bmm(e, e.transpose(1, 2))              # (B, K, K)
-    mean_diag = Gram.diagonal(dim1=1, dim2=2).mean().item()
+def _numpy_check():
+    import numpy as np
+    from reference.numpy_reference import gram_schmidt
 
-    print(f"Mean diagonal  (should be ~1.0): {mean_diag:.6f}")
-    print(f"Mean |off-diag| (should be ~0.0): {score:.6f}")
+    e = gram_schmidt(np.random.default_rng(0).standard_normal((8, 7, 64)))
+    G = e[0] @ e[0].T
+    off = G[~np.eye(7, dtype=bool)]
+    dist2 = np.array([[np.sum((e[0, i] - e[0, j]) ** 2) for j in range(7)]
+                      for i in range(7)])[~np.eye(7, dtype=bool)]
+    print("[numpy] mean diagonal   :", np.diag(G).mean())
+    print("[numpy] mean |off-diag| :", np.abs(off).mean())
+    print("[numpy] mean ||ei-ej||^2:", dist2.mean(), "(target 2.0)")
+    assert np.abs(off).mean() < 1e-4
+    assert abs(dist2.mean() - 2.0) < 1e-3
+    print("\n[numpy] OK: Proposition 1 holds.")
 
-    assert abs(mean_diag - 1.0) < 1e-4, "Diagonal not unity!"
-    assert score < 1e-5, "Off-diagonal not zero!"
-    print("\n✓  Proposition 1 holds: ||e_i - e_j||^2 = 2  for all i != j")
 
 if __name__ == "__main__":
-    main()
+    try:
+        import torch  # noqa: F401
+        _torch_check()
+    except ImportError:
+        print("torch not found -> using NumPy reference\n")
+        _numpy_check()

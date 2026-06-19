@@ -1,16 +1,20 @@
 """
-Training script for YOLOv12 + FLEO.
+Training loop for a FLEO-equipped FER model.
+===========================================
+Works with `models.FLEOClassifier` (self-contained) and, with the same
+interface, with a YOLOv12+FLEO model whose forward returns:
+    train : (logits (B,K), z (B,K))
+    eval  : logits (B,K)
 
 Training strategy:
-  - Phase 1 : warm-up (freeze backbone, train FLEO + head)
-  - Phase 2 : full fine-tune with FLEOTotalLoss
-  - Confusion matrix C is updated every epoch (running mean)
+  - FLEOTotalLoss = fuzzy loss + lambda * binding loss
+  - Confusion matrix C seeded from FACS AU-overlap, then updated each epoch
+    by a running mean of the model's real mistakes (risk #2 mitigation).
 
-Cross-dataset generalization protocol:
-  - Train  : RAF-DB
-  - Test   : AffectNet (zero-shot cross-dataset evaluation)
+Cross-dataset protocol: train on RAF-DB, evaluate on AffectNet.
 """
 
+import os
 import torch
 import torch.nn as nn
 from torch.optim import AdamW
@@ -18,7 +22,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 
 from models import FLEOTotalLoss
 from utils.confusion_matrix import FACS_PRIOR_7, normalize_confusion, build_running_confusion
-from utils.metrics import compute_metrics, orthogonality_check
+from utils.metrics import compute_metrics
 
 
 class FLEOTrainer:
@@ -28,108 +32,77 @@ class FLEOTrainer:
         self.val_loader = val_loader
         self.cfg = cfg
         self.device = cfg.get("device", "cuda" if torch.cuda.is_available() else "cpu")
+        self.K = cfg.get("num_emotions", 7)
+        self.model.to(self.device)
 
-        # Initialise confusion prior from FACS AU-overlap table
         C = normalize_confusion(FACS_PRIOR_7).to(self.device)
         self.loss_fn = FLEOTotalLoss(
             confusion_matrix=C,
             lam_bind=cfg.get("lam_bind", 0.1),
             alpha_max=cfg.get("alpha_max", 0.3),
         )
-
-        self.optimizer = AdamW(
-            model.parameters(),
-            lr=cfg.get("lr", 1e-4),
-            weight_decay=cfg.get("wd", 1e-4),
-        )
-        self.scheduler = CosineAnnealingLR(
-            self.optimizer, T_max=cfg.get("epochs", 50)
-        )
-
+        self.optimizer = AdamW(model.parameters(),
+                               lr=cfg.get("lr", 1e-4),
+                               weight_decay=cfg.get("wd", 1e-4))
+        self.scheduler = CosineAnnealingLR(self.optimizer, T_max=cfg.get("epochs", 50))
         self.running_C = C.clone()
 
     # ------------------------------------------------------------------
-    def _train_epoch(self, epoch: int) -> dict:
+    def _train_epoch(self) -> dict:
         self.model.train()
         total_loss = 0.0
         all_preds, all_targets = [], []
 
-        for batch in self.train_loader:
-            imgs, emotion_labels = batch
-            imgs = imgs.to(self.device)
-            emotion_labels = emotion_labels.to(self.device)
+        for imgs, labels in self.train_loader:
+            imgs, labels = imgs.to(self.device), labels.to(self.device)
 
             self.optimizer.zero_grad()
-
-            # Forward through YOLOv12 + FLEO neck
-            features, bind_dict = self.model.neck(self.model.backbone(imgs))
-            logits = self.model.head(features)           # (B, K)
-
-            # Combine binding logits from P3 and P4
-            bind_logits = (bind_dict["bind_p3"] + bind_dict["bind_p4"]) / 2
-
-            losses = self.loss_fn(logits, bind_logits, emotion_labels)
+            logits, z = self.model(imgs)                 # (B,K), (B,K)
+            losses = self.loss_fn(logits, z, labels)
             losses["total"].backward()
-
             nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=10.0)
             self.optimizer.step()
 
             total_loss += losses["total"].item()
-            preds = logits.argmax(dim=-1)
-            all_preds.append(preds.detach())
-            all_targets.append(emotion_labels.detach())
+            all_preds.append(logits.argmax(-1).detach())
+            all_targets.append(labels.detach())
 
         self.scheduler.step()
+        preds = torch.cat(all_preds); targets = torch.cat(all_targets)
 
-        all_preds = torch.cat(all_preds)
-        all_targets = torch.cat(all_targets)
-
-        # Update running confusion matrix
+        # Risk #2 mitigation: refresh confusion prior from real mistakes.
         self.running_C = build_running_confusion(
-            all_preds, all_targets,
-            num_classes=self.cfg.get("num_emotions", 7),
-            prev_C=self.running_C,
+            preds, targets, num_classes=self.K, prev_C=self.running_C
         ).to(self.device)
         self.loss_fn.fuzzy_loss.C = self.running_C
 
-        metrics = compute_metrics(all_preds, all_targets)
-        metrics["loss"] = total_loss / len(self.train_loader)
-        return metrics
+        m = compute_metrics(preds, targets)
+        m["loss"] = total_loss / max(len(self.train_loader), 1)
+        return m
 
     # ------------------------------------------------------------------
     @torch.no_grad()
     def _val_epoch(self) -> dict:
         self.model.eval()
         all_preds, all_targets = [], []
-
-        for batch in self.val_loader:
-            imgs, emotion_labels = batch
+        for imgs, labels in self.val_loader:
             imgs = imgs.to(self.device)
-            logits = self.model(imgs)                    # inference path
-            preds = logits.argmax(dim=-1)
-            all_preds.append(preds.cpu())
-            all_targets.append(emotion_labels)
-
-        all_preds = torch.cat(all_preds)
-        all_targets = torch.cat(all_targets)
-        return compute_metrics(all_preds, all_targets)
+            logits = self.model(imgs)                    # eval path: logits only
+            all_preds.append(logits.argmax(-1).cpu())
+            all_targets.append(labels)
+        return compute_metrics(torch.cat(all_preds), torch.cat(all_targets))
 
     # ------------------------------------------------------------------
     def run(self):
+        os.makedirs("checkpoints", exist_ok=True)
         best_f1 = 0.0
         for epoch in range(1, self.cfg.get("epochs", 50) + 1):
-            train_m = self._train_epoch(epoch)
-            val_m = self._val_epoch()
-
-            print(
-                f"Epoch {epoch:03d} | "
-                f"Loss {train_m['loss']:.4f} | "
-                f"Train Acc {train_m['accuracy']:.2f}% | "
-                f"Val Acc {val_m['accuracy']:.2f}% | "
-                f"Val macro-F1 {val_m['macro_f1']:.2f}%"
-            )
-
-            if val_m["macro_f1"] > best_f1:
-                best_f1 = val_m["macro_f1"]
+            tr = self._train_epoch()
+            va = self._val_epoch()
+            print(f"Epoch {epoch:03d} | loss {tr['loss']:.4f} | "
+                  f"train acc {tr['accuracy']:.2f}% | "
+                  f"val acc {va['accuracy']:.2f}% | val F1 {va['macro_f1']:.2f}%")
+            if va["macro_f1"] > best_f1:
+                best_f1 = va["macro_f1"]
                 torch.save(self.model.state_dict(), "checkpoints/best_fleo.pt")
-                print(f"  ✓ Saved best model (macro-F1 = {best_f1:.2f}%)")
+                print(f"  saved best (macro-F1 = {best_f1:.2f}%)")

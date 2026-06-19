@@ -52,14 +52,16 @@ class YOLOv12FLEONeck(nn.Module):
     def forward(self, features: list):
         """
         features : list of backbone feature maps [P3, P4, P5]
-        Returns  : list of enhanced feature maps with FLEO applied at P3, P4
+        Returns  : list of enhanced feature maps with FLEO applied at P3, P4.
+                   During training also returns binding logits z (B, K) for each
+                   FLEO level so the trainer can compute L_bind.
         """
         p3, p4, p5 = self.base_neck(features)
 
         if self.training:
-            p3_out, bind3 = self.fleo_p3(p3)
-            p4_out, bind4 = self.fleo_p4(p4)
-            return [p3_out, p4_out, p5], {"bind_p3": bind3, "bind_p4": bind4}
+            p3_out, z3 = self.fleo_p3(p3)              # z3: (B, K)
+            p4_out, z4 = self.fleo_p4(p4)              # z4: (B, K)
+            return [p3_out, p4_out, p5], {"bind_p3": z3, "bind_p4": z4}
         else:
             p3_out = self.fleo_p3(p3)
             p4_out = self.fleo_p4(p4)
