@@ -1,0 +1,47 @@
+# ─────────────────────────────────────────────
+#  FLEO + YOLOv12  Training Configuration
+# ─────────────────────────────────────────────
+
+model:
+  backbone: yolov12s           # yolov12n / yolov12s / yolov12m
+  num_emotions: 7              # RAF-DB / AffectNet basic emotions
+  subspace_dim: 32             # d – per-emotion latent width
+  p3_channels: 256
+  p4_channels: 512
+  train_only: true             # Route 1: remove GS at inference (FPGA)
+  eps: 1.0e-8                  # numerical stability in Gram-Schmidt
+
+training:
+  epochs: 50
+  batch_size: 32
+  lr: 1.0e-4
+  weight_decay: 1.0e-4
+  lam_bind: 0.1                # lambda – binding loss weight
+  alpha_max: 0.3               # max fuzzy smoothing coefficient
+  warmup_epochs: 5             # freeze backbone during warm-up
+
+data:
+  train_dataset: RAF-DB
+  val_dataset: AffectNet        # cross-dataset generalization protocol
+  img_size: 640
+  num_workers: 8
+
+deploy:
+  target_board: ZCU104
+  dpu_arch: DPUCZDX8G/ZCU104
+  quant_mode: INT8
+  output_dir: ./compiled
+
+emotions:
+  - anger
+  - disgust
+  - fear
+  - happy
+  - sad
+  - surprise
+  - neutral
+
+# FACS Action-Unit overlap pairs (used to seed Confusion Prior C)
+facs_confusable_pairs:
+  - [anger, sad]       # AU4 shared
+  - [fear, surprise]   # AU1+2, AU5 shared
