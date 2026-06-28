@@ -102,6 +102,23 @@ FLEOTrainer(model, train_loader, val_loader, cfg).run()
 ```
 Run it: `python train_rafdb.py` → checkpoints saved to `checkpoints/best_fleo.pt`.
 
+### Step 4b: Train on FER2013 (ready-made script)
+FER2013 (Kaggle `msambare/fer2013`) is 48×48 **grayscale**, 7 emotions, already
+split into `train/` and `test/`. A ready-to-run script handles the grayscale→RGB
+conversion and the label remap to the FACS confusion-prior order:
+
+```bash
+# Local: download/unzip FER2013 into ./data/fer2013 (so data/fer2013/train/... exists)
+python train_fer2013.py --data data/fer2013 --epochs 50 --batch-size 64
+
+# Kaggle: add the FER2013 dataset via "+ Add Input", then:
+python train_fer2013.py --data /kaggle/input/fer2013 --epochs 50
+```
+If `--data` is omitted it auto-probes common paths (`data/fer2013`,
+`/kaggle/input/fer2013`, …). Best checkpoint → `checkpoints/best_fleo.pt`.
+
+Useful flags: `--lr`, `--img-size` (default 128), `--num-workers`, `--device`.
+
 ### Step 5: Interactive notebook
 ```bash
 pip install jupyter
