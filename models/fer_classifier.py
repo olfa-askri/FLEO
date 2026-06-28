@@ -42,6 +42,46 @@ class TinyBackbone(nn.Module):
         return p3, p4
 
 
+class ResNetBackbone(nn.Module):
+    """ImageNet-pretrained ResNet trunk -> P3 (/16) and P4 (/32) feature maps.
+
+    Far stronger than TinyBackbone for real FER datasets: the ImageNet
+    features give the FLEO blocks a much better signal to orthogonalize.
+    layer3 -> P3, layer4 -> P4. Channels depend on the depth:
+        resnet18/34 : P3=256, P4=512
+        resnet50    : P3=1024, P4=2048
+    """
+
+    def __init__(self, name: str = "resnet18", pretrained: bool = True):
+        super().__init__()
+        import torchvision.models as tvm
+
+        ctor = {
+            "resnet18": tvm.resnet18,
+            "resnet34": tvm.resnet34,
+            "resnet50": tvm.resnet50,
+        }[name]
+        try:
+            weights = "IMAGENET1K_V1" if pretrained else None
+            m = ctor(weights=weights)
+        except TypeError:                                  # older torchvision
+            m = ctor(pretrained=pretrained)
+
+        self.stem = nn.Sequential(m.conv1, m.bn1, m.relu, m.maxpool)
+        self.layer1, self.layer2 = m.layer1, m.layer2
+        self.layer3, self.layer4 = m.layer3, m.layer4
+        self.p3_ch = 1024 if name == "resnet50" else 256
+        self.p4_ch = 2048 if name == "resnet50" else 512
+
+    def forward(self, x):
+        x = self.stem(x)
+        x = self.layer1(x)
+        x = self.layer2(x)
+        p3 = self.layer3(x)
+        p4 = self.layer4(p3)
+        return p3, p4
+
+
 class TinyHead(nn.Module):
     """Global-pools P3 & P4, concatenates, predicts K emotion logits."""
 
@@ -65,9 +105,14 @@ class FLEOClassifier(nn.Module):
     """
 
     def __init__(self, num_emotions=7, p3_ch=64, p4_ch=128,
-                 subspace_dim=16, train_only=True):
+                 subspace_dim=16, train_only=True,
+                 backbone="tiny", pretrained=True):
         super().__init__()
-        self.backbone = TinyBackbone(p3_ch, p4_ch)
+        if backbone in ("resnet18", "resnet34", "resnet50"):
+            self.backbone = ResNetBackbone(backbone, pretrained=pretrained)
+            p3_ch, p4_ch = self.backbone.p3_ch, self.backbone.p4_ch
+        else:
+            self.backbone = TinyBackbone(p3_ch, p4_ch)
         self.fleo_p3 = FLEOModule(p3_ch, num_emotions, subspace_dim, train_only=train_only)
         self.fleo_p4 = FLEOModule(p4_ch, num_emotions, subspace_dim, train_only=train_only)
         self.head = TinyHead(p3_ch, p4_ch, num_emotions)

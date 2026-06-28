@@ -93,7 +93,28 @@ def make_target_transform(class_to_idx: dict) -> callable:
     return lambda y: int(remap_t[y])
 
 
-def build_loaders(root: str, img_size: int, batch_size: int, num_workers: int):
+# ImageNet stats — required when using a pretrained ResNet backbone.
+IMAGENET_MEAN = [0.485, 0.456, 0.406]
+IMAGENET_STD = [0.229, 0.224, 0.225]
+
+
+def _make_sampler(dataset):
+    """WeightedRandomSampler that balances FER2013's skewed classes
+    (e.g. 'disgust' has ~15x fewer samples than 'happy')."""
+    from torch.utils.data import WeightedRandomSampler
+
+    targets = dataset.targets if hasattr(dataset, "targets") else None
+    if targets is None:
+        return None
+    targets = torch.tensor(targets)
+    counts = torch.bincount(targets)
+    class_w = 1.0 / counts.clamp(min=1).float()
+    sample_w = class_w[targets]
+    return WeightedRandomSampler(sample_w, num_samples=len(sample_w), replacement=True)
+
+
+def build_loaders(root: str, img_size: int, batch_size: int, num_workers: int,
+                  normalize: bool = True, balanced: bool = True):
     # FER2013 normally has train/ + test/. Some mirrors use 'val', and some
     # have the emotion folders directly at the root (no split at all).
     train_dir = os.path.join(root, "train")
@@ -103,16 +124,25 @@ def build_loaders(root: str, img_size: int, batch_size: int, num_workers: int):
     if not os.path.isdir(val_dir):
         val_dir = os.path.join(root, "val")
 
+    norm = [transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD)] if normalize else []
+
     eval_tf = transforms.Compose([
         transforms.Grayscale(num_output_channels=3),   # 48x48 gray -> 3ch
         transforms.Resize((img_size, img_size)),
         transforms.ToTensor(),
+        *norm,
     ])
+    # Strong augmentation to fight the overfitting seen with weak augmentation.
     train_tf = transforms.Compose([
         transforms.Grayscale(num_output_channels=3),
         transforms.Resize((img_size, img_size)),
         transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(12),
+        transforms.RandomResizedCrop(img_size, scale=(0.8, 1.0), antialias=True),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2),
         transforms.ToTensor(),
+        *norm,
+        transforms.RandomErasing(p=0.25),
     ])
 
     train_ds = datasets.ImageFolder(train_dir, transform=train_tf)
@@ -136,7 +166,11 @@ def build_loaders(root: str, img_size: int, batch_size: int, num_workers: int):
 
     print(f"[FER2013] train={len(train_ds)} imgs  val={len(val_ds)} imgs")
 
-    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True,
+    sampler = _make_sampler(train_ds) if balanced else None
+    if sampler is not None:
+        print("[FER2013] using class-balanced WeightedRandomSampler")
+    train_loader = DataLoader(train_ds, batch_size=batch_size,
+                              shuffle=(sampler is None), sampler=sampler,
                               num_workers=num_workers, pin_memory=True)
     val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False,
                             num_workers=num_workers, pin_memory=True)
@@ -151,18 +185,32 @@ def main():
     ap.add_argument("--lr", type=float, default=1e-4)
     ap.add_argument("--img-size", type=int, default=128)
     ap.add_argument("--num-workers", type=int, default=4)
+    ap.add_argument("--backbone", default="resnet18",
+                    choices=["tiny", "resnet18", "resnet34", "resnet50"],
+                    help="feature extractor (resnet18 = strong, pretrained)")
+    ap.add_argument("--no-pretrained", action="store_true",
+                    help="train the ResNet backbone from scratch")
+    ap.add_argument("--no-balanced", action="store_true",
+                    help="disable the class-balanced sampler")
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = ap.parse_args()
 
     root = find_dataset(args.data)
     print(f"[FER2013] dataset root: {root}")
-    print(f"[FER2013] device: {args.device}")
+    print(f"[FER2013] device: {args.device}  backbone: {args.backbone}")
 
+    # ResNet backbones are pretrained on ImageNet -> use ImageNet normalization.
+    use_norm = args.backbone != "tiny"
     train_loader, val_loader = build_loaders(
-        root, args.img_size, args.batch_size, args.num_workers
+        root, args.img_size, args.batch_size, args.num_workers,
+        normalize=use_norm, balanced=not args.no_balanced,
     )
 
-    model = FLEOClassifier(num_emotions=7)
+    model = FLEOClassifier(
+        num_emotions=7,
+        backbone=args.backbone,
+        pretrained=not args.no_pretrained,
+    )
     cfg = {
         "epochs": args.epochs,
         "lr": args.lr,
