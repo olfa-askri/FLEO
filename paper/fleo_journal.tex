@@ -1,0 +1,616 @@
+%==============================================================================
+%  FLEO: Fuzzy Label and Emotion Orthogonalization for YOLOv12-based FER
+%  Journal manuscript (IEEEtran). Compile:
+%      pdflatex fleo_journal && bibtex fleo_journal && pdflatex fleo_journal x2
+%
+%  NOTE ON RESULTS: every numeric cell in the results tables is a placeholder
+%  written as \pending. Replace it with measured numbers from your own runs
+%  (run_ablation.py / evaluate.py) before submission. Do not report
+%  unmeasured values.
+%==============================================================================
+\documentclass[journal]{IEEEtran}
+
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+% Placeholder marker for numbers that must come from real runs.
+\newcommand{\pending}{\textcolor{red}{$\bullet$}}
+
+\begin{document}
+
+\title{FLEO: Fuzzy Label and Emotion Orthogonalization for\\
+Disambiguating Morphologically Similar Expressions in\\
+YOLOv12-Based Facial Emotion Recognition}
+
+\author{Olfa~Askri,~Saifeddine~Massoud,~and~Mohamed~Ali~Hajjaji%
+\thanks{O. Askri is with ENET'Com, University of Sfax, Tunisia, and with the
+E$\mu$E Laboratory LR99ES30, University of Monastir, Tunisia
+(e-mail: askriolfa15@gmail.com).}%
+\thanks{S. Massoud and M. A. Hajjaji are with the E$\mu$E Laboratory LR99ES30,
+University of Monastir, Tunisia.}%
+\thanks{Manuscript submitted \today.}}
+
+\markboth{IEEE Transactions (Submitted Manuscript)}%
+{Askri \MakeLowercase{\textit{et al.}}: FLEO for YOLOv12-based Facial Emotion Recognition}
+
+\maketitle
+
+\begin{abstract}
+Expressions that share facial musculature are routinely confused by
+detectors: anger and sadness both knot the brow, fear and surprise both widen
+the eyes. Inside a YOLO detector the neck aggregates channels linearly, so the
+latent directions of these neighbouring classes overlap and the classification
+head inherits the ambiguity. We treat this as a problem of feature geometry
+rather than one to be cleaned up after the fact. FLEO is a drop-in neck module
+that splits the feature tensor into $K$ per-emotion subspaces and forces them
+apart with a differentiable, batched Gram--Schmidt operator, so decorrelation
+is a property of the forward pass instead of a penalty negotiated with the
+loss. Two design choices give the orthogonalization meaning. A lightweight
+per-subspace supervision binds subspace $k$ to emotion $k$, which keeps
+Gram--Schmidt from separating arbitrary channel groups; and a confusion-aware
+fuzzy loss routes its smoothing mass along a data-driven confusion prior, so
+the model is tolerant exactly where expressions are genuinely hard to tell
+apart and strict everywhere else. We insert FLEO at the P3 and P4 neck levels
+of YOLOv12 and give a deployment analysis for the Xilinx ZCU104 DPU, including
+a train-time-only variant that keeps the square-root and division off the
+inference path. We release a complete, reproducible implementation---model,
+losses, training, a component-wise ablation harness, and the FPGA export
+pipeline---and report results on FER2013 and RAF-DB. Numbers reported here are
+produced by the released code; cells still marked are pending the
+corresponding runs.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Facial emotion recognition, YOLOv12, feature orthogonalization,
+Gram--Schmidt, fuzzy label smoothing, object detection, FPGA deployment.
+\end{IEEEkeywords}
+
+%==============================================================================
+\section{Introduction}
+%==============================================================================
+\IEEEPARstart{F}{acial} emotion recognition (FER) sits between two communities
+that rarely share code. One treats it as image classification on a cropped,
+aligned face; the other folds detection and recognition into a single forward
+pass and reports it in frames per second. The second framing is the one that
+real e-learning and human--computer interaction systems need, because faces
+arrive un-cropped, off-axis, and several at a time. Single-shot detectors of
+the YOLO family~\cite{redmon2016yolo,khanam2024yolov11,tian2025yolov12} have
+become the natural backbone for that setting, and recent work has attached FER
+heads to YOLOv5 through YOLOv8 with respectable speed--accuracy
+trade-offs~\cite{alshammari2024yolov8fer,ma2025alfyolo,ma2024feryolomamba}.
+
+The accuracy ceiling in this setting is not where most papers look. It is not
+the backbone, and it is not the head; it is the geometry of the neck. YOLOv12
+builds its neck from area-attention and R-ELAN blocks whose output is, in the
+end, a linear aggregation of channels~\cite{tian2025yolov12}. Linear
+aggregation is the right tool for classes that occupy distinct regions of
+feature space and the wrong one for classes that overlap there by
+construction. Anger and sadness recruit overlapping brow dynamics; fear and
+surprise recruit overlapping eye-widening. Their latent descriptors sit close
+together, and a head that reads a linear combination of those descriptors
+cannot reliably pull them apart. The FER literature has named this from the
+label side---annotation ambiguity, inter-class similarity---and answered it
+with uncertainty estimation and latent-distribution
+mining~\cite{wang2020scn,she2021dmue,zhang2021rul,navigating2025}. Much less
+has been done on the feature-geometry side inside a real-time detector.
+
+Orthogonal decomposition is the natural instrument. Split the features into
+per-class subspaces, make the subspaces orthogonal, and the head reads from
+directions that no longer leak into one another. The idea is not new in
+representation learning~\cite{bansal2018orthogonality,brock2019biggan,huang2018own},
+and a recent transformer for near-infrared FER decomposes features into
+orthogonal modality subspaces~\cite{nir2024hypergraph}. That work also makes
+the observation we build on: previous orthogonal-decomposition methods impose
+orthogonality through an external regularization term, which is slow to
+optimize and competes with the rest of the network. An orthogonality that the
+layer simply \emph{has}, rather than one the loss must negotiate, should behave
+better. That is the gap FLEO targets.
+
+FLEO---Fuzzy Label and Emotion Orthogonalization---is a single neck module
+with three moving parts. It projects the neck tensor into $K$ emotion
+subspaces and orthogonalizes them with a differentiable Gram--Schmidt pass, so
+the constraint is structural. It binds each subspace to a specific emotion
+with a small auxiliary supervision, so the orthogonalization separates
+meaningful directions rather than arbitrary channel partitions; without that
+binding, Gram--Schmidt on a random split is geometry for its own sake. And it
+trains under a confusion-aware fuzzy loss that spreads label mass along the
+actual confusion structure of the data, so the model relaxes precisely on the
+pairs it has earned the right to be unsure about.
+
+\paragraph*{Contributions}
+\begin{enumerate}
+\item A neck module for YOLOv12 that decomposes features into per-emotion
+subspaces and enforces mutual orthogonality with a batched, differentiable
+Gram--Schmidt operator, internalizing a constraint that prior work pays for
+with an external penalty (Sec.~\ref{sec:method}).
+\item A subspace--emotion binding loss that ties subspace $k$ to emotion $k$,
+so the orthogonalization is semantically anchored rather than decorative
+(Sec.~\ref{sec:binding}).
+\item A confusion-aware adaptive fuzzy loss whose smoothing mass follows a
+data-driven confusion prior; we state plainly its relationship to
+label-smoothed cross-entropy, so the novelty claim is the structured target,
+not the divergence (Sec.~\ref{sec:fuzzy}).
+\item A deployment analysis for the Xilinx ZCU104 DPU that quantifies the cost
+of the orthogonalization recurrence and offers a train-time-only variant with
+no square-root or division on the inference path (Sec.~\ref{sec:fpga}).
+\item A reproducible protocol and open implementation on FER2013 and RAF-DB
+with component-wise ablations (Sec.~\ref{sec:exp}).
+\end{enumerate}
+
+%==============================================================================
+\section{Related Work}
+%==============================================================================
+\subsection{Detection-based FER}
+Treating FER as detection rather than classification buys speed and the
+ability to handle multiple un-cropped faces. Alshammari and
+Alshammari~\cite{alshammari2024yolov8fer} adapt YOLOv8 to seven-class
+expression detection; ALF-YOLO~\cite{ma2025alfyolo} modifies YOLOv8n with
+adaptive multi-branch convolutions and a large-kernel attention block;
+FER-YOLO-Mamba~\cite{ma2024feryolomamba} swaps part of the attention stack for
+a selective state-space model. The common thread is a stronger encoder. The
+failure mode they leave untouched is the linear mixing at the neck, which is
+exactly where adjacent classes blur, and none of them, to our reading, targets
+YOLOv12 or the subspace geometry of the neck.
+
+\subsection{Feature Disentanglement and Orthogonality}
+Disentangling expression from identity and illumination has a long line, from
+adversarial separation~\cite{ali2019degan} to orthogonality as an explicit
+training objective~\cite{bansal2018orthogonality,brock2019biggan} and
+orthogonal weight normalization on the Stiefel manifold~\cite{huang2018own}.
+The near-infrared FER transformer of~\cite{nir2024hypergraph} decomposes
+features into orthogonal modality subspaces and notes the cost of external
+orthogonality penalties. FLEO differs on two axes: the orthogonalization is
+computed in the forward pass, with no penalty to tune, and the subspaces are
+per-emotion and explicitly bound to labels rather than per-modality.
+
+\subsection{Label Ambiguity in FER}
+Because expressions overlap and annotators disagree, one-hot targets are a
+poor fit. SCN reweights uncertain samples and relabels suspected
+noise~\cite{wang2020scn}; DMUE mines a latent label
+distribution~\cite{she2021dmue}; RUL learns from relative sample
+difficulty~\cite{zhang2021rul}; and a recent line recasts FER as partial-label
+learning to keep the ambiguity rather than erase it~\cite{wang2022rethinking}.
+Label smoothing is the cheap baseline~\cite{szegedy2016rethinking,muller2019labelsmoothing},
+and a recent method routes smoothing toward minority
+classes~\cite{navigating2025}. FLEO's loss belongs to this family but is, to
+our knowledge, the first to make the smoothing target both \emph{adaptive} (a
+function of per-sample uncertainty) and \emph{confusion-structured} (mass flows
+along a measured confusion prior, not uniformly).
+
+%==============================================================================
+\section{Method: The FLEO Block}\label{sec:method}
+%==============================================================================
+FLEO is inserted at one or more neck levels of YOLOv12, after an
+R-ELAN/area-attention stage and before the corresponding detection head. It
+takes the level's feature tensor $X \in \mathbb{R}^{B\times C\times H\times W}$
+and returns a tensor of the same shape, so it is a true drop-in.
+Figure~\ref{fig:block} sketches the data path.
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{0.92\columnwidth}{\centering\footnotesize
+$X$ $\rightarrow$ Conv$_{1\times1}{\to}K{\cdot}d$ $\rightarrow$ Split
+$\{v_1,\dots,v_K\}$ $\rightarrow$ batched Gram--Schmidt $\rightarrow$
+$X_\text{ortho}$ \\[2pt]
+$\odot$ SE gate $s=\sigma(\text{Conv}_{1\times1}(\text{AvgPool}(X')))$
+$\rightarrow$ Conv$_{3\times3}$ $+\,X$ $\rightarrow$ $Y$ \\[2pt]
+binding head $z_k=\text{GAP}(\text{Conv}_{1\times1}(e_k)) \rightarrow
+\mathcal{L}_\text{bind}$
+}}
+\caption{The FLEO block inside the YOLOv12 neck. A $1\times1$ projection
+produces $X'$, split into $K$ emotion subspaces. Batched Gram--Schmidt returns
+orthonormal $e_k$. A modified squeeze-and-excitation branch supplies a fuzzy
+gate $s$; the binding head taps $e_k$ for auxiliary per-subspace supervision.
+A $3\times3$ convolution and a residual connection restore detector stability.}
+\label{fig:block}
+\end{figure}
+
+\subsection{Decomposition into emotion subspaces}
+A $1\times1$ convolution adjusts the channel count to $C_\text{mid}=K\cdot d$,
+where $K$ is the number of target emotions ($K=7$ for the basic set) and
+$d=\lfloor C/K\rfloor$ is the per-emotion subspace width:
+\begin{equation}
+X' = \text{Conv}_{1\times1}(X)\in\mathbb{R}^{B\times(K\cdot d)\times H\times W}.
+\end{equation}
+We then partition $X'$ along the channel axis into $K$ sub-tensors
+$\mathcal{V}=\{v_1,\dots,v_K\}$, one per emotion:
+\begin{equation}
+v_k = X'[:,(k{-}1)d:kd,:,:]\in\mathbb{R}^{B\times d\times H\times W}.
+\end{equation}
+At this point the split is arbitrary; nothing yet ties $v_k$ to emotion $k$.
+The binding loss of Sec.~\ref{sec:binding} does that. We flag this explicitly
+because it is the step where a careless design would orthogonalize noise.
+
+\subsection{Differentiable Gram--Schmidt orthogonalization}
+To remove the shared component between adjacent emotions, we make the $K$
+subspaces mutually orthogonal. For backpropagation we flatten the spatial and
+channel axes of each subspace, per batch element, into a vector
+$\tilde{v}_k\in\mathbb{R}^{D}$ with $D=d\cdot H\cdot W$. Classical
+Gram--Schmidt then proceeds:
+\begin{align}
+u_1 &= \tilde{v}_1, \\
+u_k &= \tilde{v}_k - \sum_{j=1}^{k-1}\text{proj}_{u_j}(\tilde{v}_k),
+       \quad k=2,\dots,K, \\
+\text{proj}_{u_j}(\tilde{v}_k) &= \frac{\langle\tilde{v}_k,u_j\rangle}
+       {\lVert u_j\rVert_2^2+\varepsilon}\,u_j, \\
+e_k &= \frac{u_k}{\lVert u_k\rVert_2+\varepsilon},
+\end{align}
+with $\varepsilon=10^{-8}$ for numerical safety. Each $e_k$ is reshaped back to
+$\mathbb{R}^{B\times d\times H\times W}$. At the output of this stage the
+property
+\begin{equation}\label{eq:ortho}
+\langle e_i,e_j\rangle = 0 \quad \forall\, i\neq j
+\end{equation}
+holds exactly per batch element. We are deliberate about what
+Eq.~\eqref{eq:ortho} does and does not promise: it is a property of the
+intermediate representation $X_\text{ortho}$, not of the block output $Y$. The
+downstream $3\times3$ convolution and the residual re-introduce cross-subspace
+mixing on purpose---the orthogonal stage acts as a structural bottleneck that
+the rest of the detector is free to recombine, much as a whitening layer
+conditions activations without dictating the final mapping. Treating
+Eq.~\eqref{eq:ortho} as a guarantee on $Y$ would be wrong, and we do not.
+
+A useful corollary of orthonormality is a fixed inter-class margin: for unit
+vectors with $\langle e_i,e_j\rangle=0$, $\lVert e_i-e_j\rVert_2^2 =
+\lVert e_i\rVert^2+\lVert e_j\rVert^2-2\langle e_i,e_j\rangle = 2$, so every
+pair of emotion directions sits at distance $\sqrt{2}$ regardless of how
+correlated the raw descriptors were. Our unit tests verify both
+Eq.~\eqref{eq:ortho} (mean off-diagonal inner product $<10^{-10}$) and this
+margin to numerical precision.
+
+\paragraph*{Classical vs.\ modified Gram--Schmidt}
+Classical Gram--Schmidt is the readable form and the less stable one. For
+$K\le 8$ the conditioning is benign and the two variants agree to within
+$\varepsilon$. For larger $K$, or if instability appears as exploding
+gradients through the normalization, the modified variant---orthogonalize
+against each $u_j$ sequentially as it is produced---is a one-line change. A
+Householder or Cayley parameterization removes the division entirely; we return
+to that for the FPGA in Sec.~\ref{sec:fpga}.
+
+\subsection{Batched implementation}
+The per-sample, per-$k$, per-$j$ triple loop is $\mathcal{O}(BK^2D)$ and, in
+naive Python, serializes badly on a GPU. The orthogonalization vectorizes
+cleanly over the batch: stack $\{\tilde{v}_k\}$ into
+$V\in\mathbb{R}^{B\times K\times D}$ and run the recurrence over $k$ with
+tensor operations, keeping a single Python loop of length $K$
+(Alg.~\ref{alg:fleo}). The recurrence over $k$ is inherently
+sequential---$u_k$ depends on $u_{1:k-1}$---but $K$ is small, so latency is set
+by $K$ matrix--vector products, not by $B$.
+
+\begin{algorithm}[t]
+\caption{Batched FLEO forward pass}\label{alg:fleo}
+\begin{algorithmic}[1]
+\REQUIRE $X\in\mathbb{R}^{B\times C\times H\times W}$; emotions $K$;
+$\varepsilon=10^{-8}$
+\ENSURE $Y\in\mathbb{R}^{B\times C\times H\times W}$; binding logits $z$
+\STATE $X' \leftarrow \text{Conv}_{1\times1}(X)$
+\STATE $V \leftarrow \text{reshape}(\text{Split}(X',K),[B,K,D])$
+       \hfill $D=dHW$
+\STATE $U[:,0,:] \leftarrow V[:,0,:]$
+\FOR{$k=1$ to $K-1$}
+  \STATE $P \leftarrow \dfrac{V[:,k,:]\cdot U[:,:k,:]}
+         {\lVert U[:,:k,:]\rVert_2^2+\varepsilon}$ \hfill coeffs, $B\times k$
+  \STATE $U[:,k,:] \leftarrow V[:,k,:]-\sum_{j<k}P_j\,U[:,j,:]$
+\ENDFOR
+\STATE $E \leftarrow U/(\lVert U\rVert_2+\varepsilon)$ \hfill row-wise normalize
+\STATE $X_\text{ortho} \leftarrow \text{reshape}(E,[B,K{\cdot}d,H,W])$
+\STATE $s \leftarrow \sigma(\text{Conv}_{1\times1}(\text{AvgPool}(X')))$
+       \hfill fuzzy gate
+\STATE $z \leftarrow \text{GAP}(\text{Conv}_{1\times1}(E))$
+       \hfill $B\times K$ binding logits
+\STATE $Y \leftarrow \text{Conv}_{3\times3}(X_\text{ortho}\odot s)+X$
+\RETURN $Y, z$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Fuzzy soft-assignment gate}
+After orthogonalization the subspaces are recombined,
+$X_\text{ortho}=\text{Concat}(e_1,\dots,e_K)$, and re-weighted by a global
+channel descriptor that models partial membership across emotions---fuzzy in
+the soft-assignment sense:
+\begin{equation}\label{eq:gate}
+s = \sigma\!\left(\text{Conv}_{1\times1}(\text{AvgPool}(X'))\right)
+    \in\mathbb{R}^{B\times C_\text{mid}\times1\times1}.
+\end{equation}
+We compute the gate from $X'$ rather than from $X_\text{ortho}$: the gate
+should read the rich pre-orthogonalization statistics, while the orthogonal
+representation carries the separated directions. The block output adds a
+residual to keep YOLOv12 training stable:
+\begin{equation}
+Y = \text{Conv}_{3\times3}(X_\text{ortho}\odot s)+X,
+\end{equation}
+with $\odot$ the Hadamard product broadcast over space.
+
+\subsection{Subspace--emotion binding}\label{sec:binding}
+Orthogonality is empty without semantics. If subspace $k$ is not pushed to
+encode emotion $k$, Gram--Schmidt merely decorrelates seven groups of channels
+that mean nothing in particular. We anchor the subspaces with a cheap
+auxiliary head: each $e_k$ is reduced to a scalar by a $1\times1$ convolution
+and global average pooling, giving a per-subspace logit
+\begin{equation}
+z_{i,k}=\text{GAP}\!\left(\text{Conv}_{1\times1}(e_{i,k})\right),
+\quad z_i\in\mathbb{R}^{K},
+\end{equation}
+supervised against the image label $y_i$ with cross-entropy on
+$\text{softmax}(z_i)$:
+\begin{equation}\label{eq:bind}
+\mathcal{L}_\text{bind} = -\frac{1}{B}\sum_{i=1}^{B}
+\log\frac{\exp(z_{i,y_i})}{\sum_m\exp(z_{i,m})}.
+\end{equation}
+The head is discarded at inference. Its only job is to make the $k$-th
+orthogonal direction predictive of the $k$-th emotion during training, which
+is what turns Eq.~\eqref{eq:ortho} from a numerical curiosity into class
+separation. The ablation in Sec.~\ref{sec:exp} is built to test exactly this:
+FLEO with the binding head off should behave close to a plain SE block.
+
+%==============================================================================
+\section{Confusion-Aware Adaptive Fuzzy Loss}\label{sec:fuzzy}
+%==============================================================================
+Hard one-hot targets punish the model for the very confusions the geometry is
+trying to model. We replace the classification term with a fuzzy target
+$\hat{T}$ and a Kullback--Leibler objective:
+\begin{equation}\label{eq:fuzzy}
+\mathcal{L}_\text{Fuzzy}(P,\hat{T}) = \frac{1}{B}\sum_{i=1}^{B}\sum_{k=1}^{K}
+\hat{T}_{i,k}\log\frac{\hat{T}_{i,k}}{P_{i,k}},
+\end{equation}
+with $P_{i,k}=\text{Softmax}(\text{logits}_{i,k})$.
+
+\paragraph*{What is and is not novel}
+We state the relationship to label smoothing rather than hide it. Since
+$\mathrm{KL}(\hat{T}\,\|\,P)=\mathrm{CE}(\hat{T},P)-\mathcal{H}(\hat{T})$ and
+the target entropy $\mathcal{H}(\hat{T})$ does not depend on the network
+parameters, the gradient of Eq.~\eqref{eq:fuzzy} equals that of cross-entropy
+against $\hat{T}$. With a uniform, fixed $\hat{T}$ this would be ordinary
+label-smoothed cross-entropy and nothing more. The contribution is the
+\emph{structure} of $\hat{T}$: it is per-sample adaptive and routed along a
+confusion prior.
+
+\paragraph*{Confusion-structured target}
+Let $C\in\mathbb{R}^{K\times K}$ be a confusion prior with $C_{k,k}=0$ and
+$C_{k,m}\ge 0$ measuring how confusable emotion $m$ is with $k$. We seed $C$
+from an action-unit overlap table (anger--sadness and fear--surprise carry the
+largest off-diagonal mass) and refresh it during training from a running
+estimate of the model's own mistakes. Smoothing mass is spread over confusers
+in proportion to $C$ rather than uniformly:
+\begin{equation}\label{eq:target}
+\hat{T}_{i,k}=
+\begin{cases}
+1-\alpha_i, & k=y_i,\\[4pt]
+\alpha_i\,\dfrac{C_{y_i,k}}{\sum_{m\neq y_i}C_{y_i,m}}, & k\neq y_i.
+\end{cases}
+\end{equation}
+So an angry face leaks probability toward sad, not toward happy.
+
+\paragraph*{Adaptive ambiguity coefficient}
+The smoothing strength tracks per-sample uncertainty through the prediction
+entropy:
+\begin{equation}\label{eq:alpha}
+\alpha_i = \text{clip}\!\left(\alpha_0\,\frac{\mathcal{H}(P_i)}{\log K},
+\alpha_\text{min},\alpha_\text{max}\right),
+\end{equation}
+with $\mathcal{H}(P_i)=-\sum_k P_{i,k}\log P_{i,k}$ and a typical range
+$[\alpha_\text{min},\alpha_\text{max}]$. Confident, easy samples are trained
+nearly hard; ambiguous ones are allowed to hedge along their confusers. The
+target is built under a stop-gradient on $\alpha_i$, consistent with the
+gradient identity above.
+
+\paragraph*{Total objective}
+In the detection setting FLEO trains end-to-end with the standard YOLOv12
+localization and objectness terms plus the two FLEO terms; in the
+classification setting we adopt here for the basic-emotion benchmarks, the
+localization terms are inactive and the objective reduces to
+\begin{equation}\label{eq:total}
+\mathcal{L} = \mathcal{L}_\text{Fuzzy} + \lambda\,\mathcal{L}_\text{bind},
+\end{equation}
+with $\lambda$ set on validation. There is no orthogonality penalty term:
+orthogonality is produced by Alg.~\ref{alg:fleo}, not purchased from the loss.
+
+%==============================================================================
+\section{Complexity and FPGA Deployment}\label{sec:fpga}
+%==============================================================================
+The thesis context for this work is embedded deployment on a Xilinx ZCU104
+with a B4096 DPU under INT8 quantization, so we treat deployment as a
+first-class constraint rather than an afterthought.
+
+\subsection{Compute and parameter cost}
+The orthogonalization adds no learnable parameters; its cost is
+$\mathcal{O}(BK^2D)$ dot products and $K$ normalizations per FLEO site. The
+learnable overhead is the two $1\times1$ convolutions, the SE branch, and one
+$3\times3$ convolution---comparable to inserting a single SE-augmented
+convolutional block. At one or two neck sites this is a small fraction of the
+YOLOv12 budget. Table~\ref{tab:cost} is to be completed from profiling.
+
+\begin{table}[t]
+\caption{Cost of FLEO relative to the YOLOv12 baseline (to be filled from
+profiling).}
+\label{tab:cost}
+\centering
+\begin{tabular}{lcccc}
+\toprule
+Model & Params (M) & GFLOPs & GPU ms & DPU ms \\
+\midrule
+YOLOv12-S (baseline) & \pending & \pending & \pending & \pending \\
+\quad + FLEO (P4 only) & \pending & \pending & \pending & \pending \\
+\quad + FLEO (P3{+}P4) & \pending & \pending & \pending & \pending \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{The quantization problem, stated honestly}
+Gram--Schmidt is hostile to a DPU in three specific ways, and pretending
+otherwise would mislead. The normalization needs a reciprocal square root; the
+projection needs a division; and the recurrence over $k$ is a sequential data
+dependency. None of these maps to the DPU's INT8 convolution-centric
+instruction set, so a literal port would fall back to the processing system
+and stall the pipeline. We see three honest routes.
+
+\emph{(1) Train-time-only FLEO.} Use the block during training as a regularizer
+that shapes the upstream weights, then fold it out for inference. The deployed
+graph keeps the projection convolutions and the SE gate---both
+DPU-native---while the Gram--Schmidt pass and its square-root/division are
+dropped. The hypothesis to test is that the orthogonality learned during
+training survives in the weights well enough that the inference-time
+approximation keeps most of the accuracy. This is the variant we recommend
+profiling first, and the one our export pipeline implements.
+
+\emph{(2) Householder/Cayley orthogonalization.} Replace Gram--Schmidt with a
+product of Householder reflections or a Cayley transform, both expressible
+without explicit division and friendlier to fixed-point. More invasive; kept
+as an alternative.
+
+\emph{(3) Hybrid PS/PL.} Run the $K$ small orthogonalization steps on the ARM
+processing system while the DPU handles convolutions. Simple to wire, but the
+round-trip can dominate latency at high frame rates.
+
+Quantifying the accuracy--latency trade of route~(1) against the baseline is
+the single most important deployment experiment, and we mark it as such in
+Sec.~\ref{sec:exp}. Our released pipeline performs the Route-1 fold-out,
+calibrates with the Vitis~AI quantizer, evaluates FP32 vs.\ INT8 accuracy, and
+compiles to an \texttt{.xmodel} for the DPUCZDX8G/ZCU104
+target~\cite{vitisai}.
+
+%==============================================================================
+\section{Experimental Protocol and Results}\label{sec:exp}
+%==============================================================================
+\textit{Note.} Numeric cells marked \pending\ are placeholders to be populated
+from the released code before submission; we do not report unmeasured values.
+
+\subsection{Datasets}
+We evaluate on two complementary benchmarks. \textbf{FER2013}~%
+\cite{goodfellow2013fer2013}: 35{,}887 grayscale $48\times48$ images, seven
+classes, noisy labels, with a human ceiling in the mid-70s. \textbf{RAF-DB}~%
+\cite{li2017rafdb}: roughly 15{,}000 in-the-wild images with crowdsourced
+labels on the basic-emotion split. Both are classification corpora; we cast
+each labelled face as a single, full-frame target so a YOLOv12 backbone with
+the FLEO neck can be trained and read out by the pooled emotion head, and we
+report standard FER accuracy and macro-F1. AffectNet~\cite{mollahosseini2019affectnet}
+is the natural third benchmark if compute allows.
+
+\subsection{Implementation details}
+The backbone is a YOLOv12 feature extractor tapped at the P3 ($/8$) and P4
+($/16$) levels, with a FLEO block on each and a global-pooling emotion head.
+Unless noted we use $K=7$, per-subspace width $d$ from the level channel count,
+$\varepsilon=10^{-8}$, and input resolution $128\times128$ (grayscale
+replicated to three channels). Optimization uses AdamW~\cite{loshchilov2019adamw}
+with cosine annealing, weight decay $10^{-4}$, and gradient-norm clipping at
+$10$. Because FER2013 is strongly imbalanced (the \emph{disgust} class is an
+order of magnitude smaller than \emph{happy}), training draws from a
+class-balanced sampler; augmentation is horizontal flip, mild rotation,
+resized crop, colour jitter, and random erasing. The confusion prior $C$ is
+seeded from action-unit overlap and updated each epoch by an exponential
+moving average of the model's mistakes. During training and validation the
+Gram--Schmidt pass is active in both passes so that the two match; the
+train-time-only fold-out is applied only for FPGA export. We report
+mean~$\pm$~std over three seeds.
+
+\subsection{Baselines and metrics}
+A YOLOv12 detector without FLEO is the primary baseline. We also compare
+against an SE-only neck block, to separate the gain of orthogonality from the
+gain of channel gating. Metrics are overall accuracy and macro-F1 (the
+imbalance makes macro-F1 the load-bearing number), per-class precision/recall,
+the seven-class confusion matrix, and---for the deployment study---INT8 vs.\
+FP32 accuracy and latency on the ZCU104.
+
+\subsection{Main results}
+Table~\ref{tab:main} reports accuracy and macro-F1 on both benchmarks.
+
+\begin{table}[t]
+\caption{FER accuracy and macro-F1 (mean over three seeds). Cells marked
+\pending\ are pending the corresponding runs.}
+\label{tab:main}
+\centering
+\begin{tabular}{lcccc}
+\toprule
+\multirow{2}{*}{Method} & \multicolumn{2}{c}{FER2013} &
+\multicolumn{2}{c}{RAF-DB}\\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+ & Acc. & m-F1 & Acc. & m-F1 \\
+\midrule
+YOLOv12 (baseline)          & \pending & \pending & \pending & \pending \\
+\quad + SE neck             & \pending & \pending & \pending & \pending \\
+\quad + FLEO (no binding)   & \pending & \pending & \pending & \pending \\
+\quad + FLEO (full)         & \pending & \pending & \pending & \pending \\
+\quad + FLEO (full) + fuzzy & \pending & \pending & \pending & \pending \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Ablations}
+The table is designed so each row isolates one claim.
+\emph{(i)}~SE-only vs.\ FLEO-no-binding tests whether orthogonality helps at
+all. \emph{(ii)}~FLEO-no-binding vs.\ FLEO-full tests the central thesis that
+binding is what makes orthogonality meaningful; if these two rows are equal,
+the binding head is dead weight and the paper should say so.
+\emph{(iii)}~$\pm$ fuzzy loss isolates the loss from the architecture.
+\emph{(iv)}~A confusion-matrix comparison on the anger/sadness and
+fear/surprise cells, baseline vs.\ FLEO, is the qualitative evidence that the
+targeted pairs separate; Grad-CAM~\cite{selvaraju2017gradcam} and a
+t-SNE~\cite{maaten2008tsne} of the $\{e_k\}$ make the same point visually. The
+released \texttt{run\_ablation.py} produces rows (i)--(iii) directly, and
+\texttt{evaluate.py} produces the confusion matrix and t-SNE.
+
+\subsection{Deployment experiment}
+We profile the three deployment routes of Sec.~\ref{sec:fpga} on the ZCU104.
+The decisive number is the accuracy drop of train-time-only FLEO (route~1)
+against full FLEO, traded against its DPU latency; we report INT8 vs.\ FP32
+accuracy and frames per second in Table~\ref{tab:deploy}.
+
+\begin{table}[t]
+\caption{Route-1 (train-time-only) deployment on ZCU104 (to be filled).}
+\label{tab:deploy}
+\centering
+\begin{tabular}{lccc}
+\toprule
+Configuration & Acc. (\%) & FPS & DPU ms \\
+\midrule
+Full FLEO (FP32, GPU)       & \pending & \pending & -- \\
+Route-1 FLEO (FP32)         & \pending & \pending & \pending \\
+Route-1 FLEO (INT8, DPU)    & \pending & \pending & \pending \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%==============================================================================
+\section{Limitations}
+%==============================================================================
+A few risks are worth naming before a reviewer does. The orthogonality holds
+at $X_\text{ortho}$, not at $Y$; we argue the bottleneck still helps, but that
+is an empirical claim the ablation must support, not a theorem. The fuzzy loss
+reduces, in gradient, to structured label smoothing, so its benefit rests
+entirely on the confusion prior $C$ being a better target than a uniform
+one---if $C$ is poorly estimated, the loss is label smoothing with extra
+steps. Finally, the version of the method that is cleanest for accuracy (full
+Gram--Schmidt) is the hardest to deploy, while the one that is cleanest to
+deploy (train-time-only) is the one whose accuracy is unproven until the
+deployment experiment is run. These are the three places the work can fail, and
+the protocol targets each.
+
+%==============================================================================
+\section{Conclusion}
+%==============================================================================
+FER inside a real-time detector fails where adjacent expressions share
+musculature, and the failure is geometric: the neck mixes their latent
+directions linearly. FLEO answers with a structural orthogonalization of
+per-emotion subspaces, made meaningful by a binding head and made tolerant by
+a confusion-aware fuzzy loss. The orthogonality is internal to the forward
+pass, so no penalty needs tuning, and the deployment story is told honestly,
+with a train-time-only variant for the DPU and a clear statement of what it has
+to prove. The implementation, the ablation harness, and the FPGA export are
+released so that the runs reported here are reproducible and the remaining
+placeholders can be closed by anyone with the two public benchmarks.
+
+\section*{Acknowledgment}
+The authors thank the E$\mu$E Laboratory, University of Monastir, for
+computational support. % [TODO: funding/grant acknowledgments]
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}
