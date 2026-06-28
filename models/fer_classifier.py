@@ -109,7 +109,18 @@ class YOLOv12Backbone(nn.Module):
                 print(f"[YOLOv12Backbone] could not load {variant}.pt "
                       f"({type(e).__name__}); building from {variant}.yaml instead.")
         if det is None:
-            det = YOLO(f"{variant}.yaml").model    # architecture only, no weights
+            try:
+                det = YOLO(f"{variant}.yaml").model  # architecture only, no weights
+            except Exception as e:
+                import ultralytics
+                raise RuntimeError(
+                    f"This ultralytics ({ultralytics.__version__}) has no "
+                    f"{variant} config ({type(e).__name__}: {e}).\n"
+                    f"YOLOv12 needs a recent ultralytics. Upgrade it:\n"
+                    f"    pip install -U ultralytics\n"
+                    f"then restart the kernel. (Or use --backbone resnet18 "
+                    f"as a fallback.)"
+                ) from e
         self.layers = det.model                    # ModuleList (each has .f, .i)
         self._p3_idx = self._p4_idx = None
         self.p3_ch = self.p4_ch = None

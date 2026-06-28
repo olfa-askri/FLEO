@@ -18,38 +18,75 @@ from models import YOLOv12FLEONeck, export_inference_graph
 
 # ── Step 1: Load model and switch to Route 1 inference mode ──────────
 
-def prepare_model_for_export(checkpoint_path: str, model_fn, cfg: dict):
+def prepare_classifier_for_export(checkpoint_path: str,
+                                  backbone: str = "yolov12s",
+                                  mode: str = "fleo_full"):
     """
-    Load a trained YOLOv12+FLEO model and prepare it for FPGA export.
+    Load a trained FLEOClassifier and prepare it for FPGA export (Route 1).
 
-    Args:
-        checkpoint_path : path to best_fleo.pt
-        model_fn        : callable that returns the full model
-        cfg             : model configuration dict
+    Route 1 = "train-time-only FLEO": the Gram-Schmidt recurrence (with its
+    square-root and division, which the DPU cannot run) is folded OUT at
+    inference. Only the projection conv + SE gate + 3x3 conv remain — all
+    DPU-native. This is the variant the paper recommends profiling first.
+
+    Returns an eval-mode model whose forward is DPU-friendly.
     """
-    model = model_fn(cfg)
+    from models import FLEOClassifier
+
+    model = FLEOClassifier(backbone=backbone, mode=mode,
+                           pretrained=False, train_only=True)
     state = torch.load(checkpoint_path, map_location="cpu")
     model.load_state_dict(state)
 
-    # Route 1: disable GS ops, set eval mode
-    model = export_inference_graph(model.neck)
+    # Route 1: fold out Gram-Schmidt on every FLEO site, then eval.
+    if getattr(model, "has_neck", False):
+        for m in (model.fleo_p3, model.fleo_p4):
+            m.train_only = True
+    model.eval()
     return model
+
+
+def prepare_model_for_export(checkpoint_path: str, model_fn, cfg: dict):
+    """Legacy path for the YOLOv12FLEONeck wrapper (kept for reference)."""
+    model = model_fn(cfg)
+    state = torch.load(checkpoint_path, map_location="cpu")
+    model.load_state_dict(state)
+    return export_inference_graph(model.neck)
+
+
+# ── Step 1b: Sanity-check INT8 vs FP32 accuracy (the deployment number) ──
+
+@torch.no_grad()
+def evaluate(model, loader, device="cpu"):
+    """Accuracy of a (possibly quantized) model — used to report the INT8
+    vs FP32 drop, the decisive deployment experiment in the paper."""
+    model.eval()
+    correct = total = 0
+    for imgs, labels in loader:
+        logits = model(imgs.to(device))
+        if isinstance(logits, tuple):
+            logits = logits[0]
+        correct += (logits.argmax(-1).cpu() == labels).sum().item()
+        total += labels.numel()
+    return 100.0 * correct / max(total, 1)
 
 
 # ── Step 2: Vitis AI Quantization (INT8) ─────────────────────────────
 
-def quantize_model(model: torch.nn.Module, calib_loader, output_dir: str):
+def quantize_model(model: torch.nn.Module, calib_loader, output_dir: str,
+                   img_size: int = 128):
     """
     Quantize the export-ready model using Vitis AI PyTorch Quantizer.
     Requires: pip install pytorch-nndct  (inside Vitis AI Docker)
 
-    Calibration data: ~100–200 representative images from RAF-DB.
+    Calibration data: ~100–200 representative images (FER2013/RAF-DB).
+    img_size must match training (default 128).
     """
     try:
         from pytorch_nndct.apis import torch_quantizer, dump_xmodel
 
-        # Build quantizer (calib mode)
-        dummy_input = torch.randn(1, 3, 640, 640)
+        # Build quantizer (calib mode) — input size must match training.
+        dummy_input = torch.randn(1, 3, img_size, img_size)
         quantizer = torch_quantizer(
             quant_mode="calib",
             module=model,
