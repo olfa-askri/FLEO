@@ -249,16 +249,3 @@ class FLEOClassifier(nn.Module):
             logits = out[0] if return_feat else out
             return (logits, z, out[1]) if return_feat else (logits, z)
         return out                                     # logits, or (logits, feat)
-
-    def forward(self, x):
-        p3, p4 = self.backbone(x)
-        if self.training:
-            p3, z3 = self.fleo_p3(p3)
-            p4, z4 = self.fleo_p4(p4)
-            logits = self.head(p3, p4)
-            z = (z3 + z4) / 2                           # combine binding logits
-            return logits, z
-        else:
-            p3 = self.fleo_p3(p3)
-            p4 = self.fleo_p4(p4)
-            return self.head(p3, p4)
