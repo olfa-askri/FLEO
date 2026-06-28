@@ -5,6 +5,22 @@
 > x86). Kaggle is only for training. You train on Kaggle, download
 > `best_fleo.pt`, then do the Vitis steps locally.
 
+## No FPGA and no Vitis? Simulate INT8 in software (Kaggle-friendly)
+If you have neither the board nor a Vitis AI install, you can still produce the
+decisive number — the **FP32 → INT8 accuracy drop** — with a pure-PyTorch
+simulation that runs anywhere:
+```bash
+python deploy/simulate_int8.py --data data/fer2013 \
+    --ckpt checkpoints/best_fleo.pt --backbone yolov12s --mode fleo_full --route1
+```
+It prints params, GFLOPs, latency/FPS (on your CPU/GPU), and FP32 vs simulated
+INT8 accuracy. Report it as **"simulated INT8"** in the paper — it is a faithful
+software proxy (per-channel 8-bit weight quantization), **not** the AMD DPU.
+Real DPU latency/FPS and the official Vitis quantizer numbers still need the
+steps below.
+
+---
+
 The "simulation" people mean is usually one of two things:
 1. **INT8 quantization + accuracy simulation** (no board needed) — the FP32→INT8
    accuracy drop. This is the decisive deployment number in the paper.
