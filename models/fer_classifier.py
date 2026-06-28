@@ -98,6 +98,9 @@ class YOLOv12Backbone(nn.Module):
         super().__init__()
         det, self.loaded_variant = self._load_detector(variant, pretrained)
         self.layers = det.model                    # ModuleList (each has .f, .i)
+        self._p3_idx = self._p4_idx = None
+        self.p3_ch = self.p4_ch = None
+        self._probe()                              # locates P3/P4 + sets channels
 
     @staticmethod
     def _load_detector(variant, pretrained):
