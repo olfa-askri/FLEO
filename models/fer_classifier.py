@@ -96,32 +96,42 @@ class YOLOv12Backbone(nn.Module):
 
     def __init__(self, variant: str = "yolov12s", pretrained: bool = True):
         super().__init__()
+        det, self.loaded_variant = self._load_detector(variant, pretrained)
+        self.layers = det.model                    # ModuleList (each has .f, .i)
+
+    @staticmethod
+    def _load_detector(variant, pretrained):
+        """Load a YOLO DetectionModel, trying pretrained .pt then .yaml, and
+        falling back across families: yolov12 -> yolo11 -> yolov8. This keeps
+        the pipeline running when the installed ultralytics ships no YOLOv12
+        config (it is often released as a separate fork)."""
         from ultralytics import YOLO
 
-        # Prefer pretrained COCO weights, but fall back to building the
-        # architecture from the YAML config if the .pt cannot be downloaded
-        # (offline runners, missing release asset, network blocked, ...).
-        det = None
-        if pretrained:
+        scale = variant.replace("yolov12", "") or "s"   # n / s / m / l / x
+        candidates = [f"yolov12{scale}", f"yolo11{scale}", f"yolov8{scale}"]
+
+        for cand in candidates:
+            if pretrained:
+                try:
+                    return YOLO(f"{cand}.pt").model, cand
+                except Exception:
+                    pass
             try:
-                det = YOLO(f"{variant}.pt").model
-            except Exception as e:                 # download/load failed
-                print(f"[YOLOv12Backbone] could not load {variant}.pt "
-                      f"({type(e).__name__}); building from {variant}.yaml instead.")
-        if det is None:
-            try:
-                det = YOLO(f"{variant}.yaml").model  # architecture only, no weights
-            except Exception as e:
-                import ultralytics
-                raise RuntimeError(
-                    f"This ultralytics ({ultralytics.__version__}) has no "
-                    f"{variant} config ({type(e).__name__}: {e}).\n"
-                    f"YOLOv12 needs a recent ultralytics. Upgrade it:\n"
-                    f"    pip install -U ultralytics\n"
-                    f"then restart the kernel. (Or use --backbone resnet18 "
-                    f"as a fallback.)"
-                ) from e
-        self.layers = det.model                    # ModuleList (each has .f, .i)
+                det = YOLO(f"{cand}.yaml").model
+                if cand != candidates[0]:
+                    print(f"[YOLOv12Backbone] '{candidates[0]}' unavailable in this "
+                          f"ultralytics; using '{cand}' as the YOLO backbone instead. "
+                          f"For the paper's exact YOLOv12, install the yolov12 package.")
+                return det, cand
+            except Exception:
+                continue
+
+        import ultralytics
+        raise RuntimeError(
+            f"Could not load any of {candidates} with ultralytics "
+            f"{ultralytics.__version__}. Upgrade ultralytics, install the "
+            f"yolov12 package, or use --backbone resnet18."
+        )
         self._p3_idx = self._p4_idx = None
         self.p3_ch = self.p4_ch = None
         self._probe()
