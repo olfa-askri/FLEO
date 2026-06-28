@@ -82,6 +82,63 @@ class ResNetBackbone(nn.Module):
         return p3, p4
 
 
+class YOLOv12Backbone(nn.Module):
+    """Real YOLOv12 backbone (ultralytics) tapped at P3 (/8) and P4 (/16).
+
+    This is the backbone the paper is about: FLEO is inserted on the YOLOv12
+    P3/P4 feature maps. Requires `pip install ultralytics`. On first use it
+    downloads pretrained COCO weights for the chosen variant
+    (yolov12n/s/m/l/x) unless pretrained=False.
+
+    NOTE: YOLOv12 (ultralytics) expects inputs in [0,1] (plain ToTensor),
+    NOT ImageNet mean/std normalization.
+    """
+
+    def __init__(self, variant: str = "yolov12s", pretrained: bool = True):
+        super().__init__()
+        from ultralytics import YOLO
+
+        src = f"{variant}.pt" if pretrained else f"{variant}.yaml"
+        det = YOLO(src).model                      # DetectionModel
+        self.layers = det.model                    # ModuleList (each has .f, .i)
+        self._p3_idx = self._p4_idx = None
+        self.p3_ch = self.p4_ch = None
+        self._probe()
+
+    def _run(self, x):
+        """Replicates ultralytics' layer routing, stopping before the head."""
+        y, feats = [], {}
+        for m in self.layers:
+            if getattr(m, "f", -1) != -1:          # gather inputs from earlier layers
+                x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]
+            if m.i == len(self.layers) - 1:        # stop before Detect head
+                break
+            x = m(x)
+            y.append(x)
+            feats[m.i] = x
+        return feats
+
+    @torch.no_grad()
+    def _probe(self, size: int = 128):
+        self.eval()
+        feats = self._run(torch.zeros(1, 3, size, size))
+        for i in sorted(feats):
+            o = feats[i]
+            if not torch.is_tensor(o) or o.dim() != 4:
+                continue
+            stride = size / o.shape[-1]
+            if abs(stride - 8) < 0.5:              # /8  -> P3 (keep last = nearest head)
+                self._p3_idx, self.p3_ch = i, o.shape[1]
+            elif abs(stride - 16) < 0.5:           # /16 -> P4
+                self._p4_idx, self.p4_ch = i, o.shape[1]
+        if self._p3_idx is None or self._p4_idx is None:
+            raise RuntimeError("Could not locate P3 (/8) and P4 (/16) in YOLOv12 backbone")
+
+    def forward(self, x):
+        feats = self._run(x)
+        return feats[self._p3_idx], feats[self._p4_idx]
+
+
 class TinyHead(nn.Module):
     """Global-pools P3 & P4, concatenates, predicts K emotion logits."""
 
@@ -110,6 +167,9 @@ class FLEOClassifier(nn.Module):
         super().__init__()
         if backbone in ("resnet18", "resnet34", "resnet50"):
             self.backbone = ResNetBackbone(backbone, pretrained=pretrained)
+            p3_ch, p4_ch = self.backbone.p3_ch, self.backbone.p4_ch
+        elif backbone.startswith("yolov12"):
+            self.backbone = YOLOv12Backbone(backbone, pretrained=pretrained)
             p3_ch, p4_ch = self.backbone.p3_ch, self.backbone.p4_ch
         else:
             self.backbone = TinyBackbone(p3_ch, p4_ch)

@@ -185,11 +185,12 @@ def main():
     ap.add_argument("--lr", type=float, default=1e-4)
     ap.add_argument("--img-size", type=int, default=128)
     ap.add_argument("--num-workers", type=int, default=4)
-    ap.add_argument("--backbone", default="resnet18",
-                    choices=["tiny", "resnet18", "resnet34", "resnet50"],
-                    help="feature extractor (resnet18 = strong, pretrained)")
+    ap.add_argument("--backbone", default="yolov12s",
+                    choices=["tiny", "resnet18", "resnet34", "resnet50",
+                             "yolov12n", "yolov12s", "yolov12m", "yolov12l", "yolov12x"],
+                    help="feature extractor (yolov12s = the paper's backbone)")
     ap.add_argument("--no-pretrained", action="store_true",
-                    help="train the ResNet backbone from scratch")
+                    help="train the backbone from scratch (no COCO/ImageNet weights)")
     ap.add_argument("--no-balanced", action="store_true",
                     help="disable the class-balanced sampler")
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
@@ -199,8 +200,8 @@ def main():
     print(f"[FER2013] dataset root: {root}")
     print(f"[FER2013] device: {args.device}  backbone: {args.backbone}")
 
-    # ResNet backbones are pretrained on ImageNet -> use ImageNet normalization.
-    use_norm = args.backbone != "tiny"
+    # ResNet uses ImageNet mean/std; YOLOv12 (and tiny) expect plain [0,1].
+    use_norm = args.backbone.startswith("resnet")
     train_loader, val_loader = build_loaders(
         root, args.img_size, args.batch_size, args.num_workers,
         normalize=use_norm, balanced=not args.no_balanced,

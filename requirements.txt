@@ -5,6 +5,7 @@ scikit-learn>=1.3.0
 pyyaml>=6.0
 opencv-python>=4.8.0
 tqdm>=4.66.0
+ultralytics>=8.3.0          # YOLOv12 backbone
 
 # Vitis AI (install inside AMD Vitis AI Docker container)
 # pytorch-nndct
