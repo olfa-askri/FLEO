@@ -94,13 +94,16 @@ def make_target_transform(class_to_idx: dict) -> callable:
 
 
 def build_loaders(root: str, img_size: int, batch_size: int, num_workers: int):
+    # FER2013 normally has train/ + test/. Some mirrors use 'val', and some
+    # have the emotion folders directly at the root (no split at all).
     train_dir = os.path.join(root, "train")
-    # FER2013 uses 'test' for the held-out split; some mirrors use 'val'.
+    if not os.path.isdir(train_dir):
+        train_dir = root                       # emotion folders directly at root
     val_dir = os.path.join(root, "test")
     if not os.path.isdir(val_dir):
         val_dir = os.path.join(root, "val")
 
-    tf = transforms.Compose([
+    eval_tf = transforms.Compose([
         transforms.Grayscale(num_output_channels=3),   # 48x48 gray -> 3ch
         transforms.Resize((img_size, img_size)),
         transforms.ToTensor(),
@@ -113,15 +116,25 @@ def build_loaders(root: str, img_size: int, batch_size: int, num_workers: int):
     ])
 
     train_ds = datasets.ImageFolder(train_dir, transform=train_tf)
-    val_ds = datasets.ImageFolder(val_dir, transform=tf)
-
-    # Align labels to the FACS confusion-prior order.
     tt = make_target_transform(train_ds.class_to_idx)
     train_ds.target_transform = tt
-    val_ds.target_transform = make_target_transform(val_ds.class_to_idx)
+
+    if os.path.isdir(val_dir):
+        val_ds = datasets.ImageFolder(val_dir, transform=eval_tf)
+        val_ds.target_transform = make_target_transform(val_ds.class_to_idx)
+    else:
+        # No held-out split: carve 10% off train for validation.
+        print("[FER2013] no test/val folder found — splitting 90/10 from train.")
+        full = datasets.ImageFolder(train_dir, transform=eval_tf)
+        full.target_transform = tt
+        n_val = max(1, int(0.1 * len(full)))
+        g = torch.Generator().manual_seed(42)
+        perm = torch.randperm(len(full), generator=g).tolist()
+        val_idx, train_idx = perm[:n_val], perm[n_val:]
+        val_ds = torch.utils.data.Subset(full, val_idx)
+        train_ds = torch.utils.data.Subset(train_ds, train_idx)
 
     print(f"[FER2013] train={len(train_ds)} imgs  val={len(val_ds)} imgs")
-    print(f"[FER2013] folder->index: {train_ds.class_to_idx}")
 
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True,
                               num_workers=num_workers, pin_memory=True)
