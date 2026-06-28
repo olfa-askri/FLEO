@@ -207,10 +207,14 @@ def main():
         normalize=use_norm, balanced=not args.no_balanced,
     )
 
+    # train_only=False -> Gram-Schmidt runs in BOTH train and eval, so the
+    # validation forward matches training. (train_only=True is only for the
+    # FPGA export route, where GS is folded out *after* training.)
     model = FLEOClassifier(
         num_emotions=7,
         backbone=args.backbone,
         pretrained=not args.no_pretrained,
+        train_only=False,
     )
     cfg = {
         "epochs": args.epochs,
