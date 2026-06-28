@@ -60,4 +60,5 @@ def build_running_confusion(
     if prev_C is None:
         return batch_C
 
-    return momentum * prev_C + (1.0 - momentum) * batch_C
+    # Keep both tensors on the same device (prev_C may live on GPU).
+    return momentum * prev_C + (1.0 - momentum) * batch_C.to(prev_C.device)
