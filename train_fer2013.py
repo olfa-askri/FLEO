@@ -36,13 +36,36 @@ Best checkpoint (by macro-F1) is written to checkpoints/best_fleo.pt
 
 import argparse
 import os
+import random
 import sys
 
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
 from models import FLEOClassifier
+
+
+def set_seed(seed: int):
+    """Make a run reproducible (needed for the mean +/- std over 3 seeds)."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+
+def build_model(backbone="yolov12s", mode="fleo_full", pretrained=True,
+                num_emotions=7):
+    """Single entry point so train_fer2013 and run_ablation build models the
+    same way. train_only=False keeps Gram-Schmidt active during validation."""
+    return FLEOClassifier(
+        num_emotions=num_emotions,
+        backbone=backbone,
+        pretrained=pretrained,
+        mode=mode,
+        train_only=False,
+    )
 from train.trainer import FLEOTrainer
 
 
@@ -193,12 +216,21 @@ def main():
                     help="train the backbone from scratch (no COCO/ImageNet weights)")
     ap.add_argument("--no-balanced", action="store_true",
                     help="disable the class-balanced sampler")
+    ap.add_argument("--mode", default="fleo_full",
+                    choices=["baseline", "se", "fleo_nobind", "fleo_full"],
+                    help="ablation mode (Table 2 of the paper)")
+    ap.add_argument("--no-fuzzy", action="store_true",
+                    help="use plain cross-entropy instead of the fuzzy loss")
+    ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--ckpt", default="checkpoints/best_fleo.pt")
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = ap.parse_args()
 
+    set_seed(args.seed)
     root = find_dataset(args.data)
     print(f"[FER2013] dataset root: {root}")
-    print(f"[FER2013] device: {args.device}  backbone: {args.backbone}")
+    print(f"[FER2013] device: {args.device}  backbone: {args.backbone}  "
+          f"mode: {args.mode}  fuzzy: {not args.no_fuzzy}  seed: {args.seed}")
 
     # ResNet uses ImageNet mean/std; YOLOv12 (and tiny) expect plain [0,1].
     use_norm = args.backbone.startswith("resnet")
@@ -207,23 +239,19 @@ def main():
         normalize=use_norm, balanced=not args.no_balanced,
     )
 
-    # train_only=False -> Gram-Schmidt runs in BOTH train and eval, so the
-    # validation forward matches training. (train_only=True is only for the
-    # FPGA export route, where GS is folded out *after* training.)
-    model = FLEOClassifier(
-        num_emotions=7,
-        backbone=args.backbone,
-        pretrained=not args.no_pretrained,
-        train_only=False,
-    )
+    model = build_model(backbone=args.backbone, mode=args.mode,
+                        pretrained=not args.no_pretrained)
     cfg = {
         "epochs": args.epochs,
         "lr": args.lr,
         "num_emotions": 7,
         "device": args.device,
+        "use_fuzzy": not args.no_fuzzy,
+        "ckpt": args.ckpt,
     }
-    FLEOTrainer(model, train_loader, val_loader, cfg).run()
-    print("[FER2013] done. Best checkpoint: checkpoints/best_fleo.pt")
+    report = FLEOTrainer(model, train_loader, val_loader, cfg).run()
+    print(f"[FER2013] done. best acc={report['accuracy']:.2f}%  "
+          f"macro-F1={report['macro_f1']:.2f}%  ->  {args.ckpt}")
 
 
 if __name__ == "__main__":

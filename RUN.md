@@ -119,6 +119,31 @@ If `--data` is omitted it auto-probes common paths (`data/fer2013`,
 
 Useful flags: `--lr`, `--img-size` (default 128), `--num-workers`, `--device`.
 
+### Step 4c: Publication pipeline (ablation + figures)
+The paper's decisive result is the **ablation** (Table 2) and the
+**confusion-matrix / t-SNE** figures. Two scripts produce them:
+
+```bash
+# Table 2: baseline -> +SE -> +FLEO(no binding) -> +FLEO(full) -> +fuzzy,
+# each over 3 seeds, reported as mean +/- std.
+python run_ablation.py --data data/fer2013 --backbone yolov12s \
+    --epochs 40 --seeds 0 1 2 --out results/ablation.json
+
+# Figures from the best checkpoint: confusion matrix + t-SNE + per-class report.
+python evaluate.py --data data/fer2013 --backbone yolov12s --mode fleo_full \
+    --ckpt checkpoints/best_fleo.pt --out results
+```
+
+Ablation modes (also usable directly via `train_fer2013.py --mode ... [--no-fuzzy]`):
+
+| `--mode` | orthogonalization | binding head | Table 2 row |
+|---|---|---|---|
+| `baseline` | – | – | YOLOv12-S baseline |
+| `se` | – | – (SE gate only) | + SE neck |
+| `fleo_nobind` | ✓ | – | + FLEO (no binding) |
+| `fleo_full` | ✓ | ✓ | + FLEO (full) |
+| `fleo_full` + fuzzy loss | ✓ | ✓ | + FLEO (full) + fuzzy |
+
 ### Step 5: Interactive notebook
 ```bash
 pip install jupyter

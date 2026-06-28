@@ -101,12 +101,27 @@ class FuzzyConfusionLoss(nn.Module):
 # 3. Combined loss
 # ---------------------------------------------------------------------------
 class FLEOTotalLoss(nn.Module):
-    def __init__(self, confusion_matrix, lam_bind=0.1, alpha_max=0.3):
+    """L_total = L_cls + lambda * L_bind.
+
+    L_cls is the confusion-aware fuzzy loss when use_fuzzy=True (the paper's
+    full objective), or plain cross-entropy with hard targets when False (the
+    '-fuzzy' ablation rows). L_bind is skipped automatically when the model
+    provides no binding logits (z is None, e.g. baseline / SE / no-binding).
+    """
+
+    def __init__(self, confusion_matrix, lam_bind=0.1, alpha_max=0.3, use_fuzzy=True):
         super().__init__()
+        self.use_fuzzy = use_fuzzy
         self.fuzzy_loss = FuzzyConfusionLoss(confusion_matrix, alpha_max=alpha_max)
         self.bind_loss = BindingLoss(lam=lam_bind)
 
     def forward(self, logits, z, targets) -> dict:
-        lf = self.fuzzy_loss(logits, targets)
-        lb = self.bind_loss(z, targets)
+        if self.use_fuzzy:
+            lf = self.fuzzy_loss(logits, targets)
+        else:
+            lf = F.cross_entropy(logits, targets)
+        if z is not None:
+            lb = self.bind_loss(z, targets)
+        else:
+            lb = torch.zeros((), device=logits.device)
         return {"fuzzy": lf, "bind": lb, "total": lf + lb}

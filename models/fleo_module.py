@@ -147,6 +147,8 @@ class FLEOModule(nn.Module):
         subspace_dim: int = 32,
         eps: float = 1e-8,
         train_only: bool = True,
+        use_ortho: bool = True,
+        use_binding: bool = True,
     ):
         super().__init__()
         self.C = in_channels
@@ -154,6 +156,8 @@ class FLEOModule(nn.Module):
         self.d = subspace_dim
         self.eps = eps
         self.train_only = train_only
+        self.use_ortho = use_ortho                     # False -> SE-only ablation
+        self.use_binding = use_binding                 # False -> no binding head/loss
         mid = num_emotions * subspace_dim              # K*d
 
         # 4.1 Projection C -> K*d  (1x1 conv, fully DPU-supported)
@@ -173,8 +177,10 @@ class FLEOModule(nn.Module):
             nn.SiLU(inplace=True),
         )
 
-        # 4.5 Binding head (train-time only)
-        self.binding_head = BindingHead(num_emotions, subspace_dim)
+        # 4.5 Binding head (train-time only; omitted in the no-binding ablation)
+        self.binding_head = (
+            BindingHead(num_emotions, subspace_dim) if use_binding else None
+        )
 
     # ---- geometry helper -------------------------------------------------
     def _orthogonalize(self, x_proj: torch.Tensor) -> torch.Tensor:
@@ -194,20 +200,20 @@ class FLEOModule(nn.Module):
         # (1) projection into K subspaces
         x_proj = F.silu(self.proj_bn(self.proj(x)))    # (B, K*d, H, W)
 
-        # (2) orthogonalize  (skipped at inference when train_only=True)
-        if self.training or not self.train_only:
-            x_ortho = self._orthogonalize(x_proj)
-        else:
-            x_ortho = x_proj                           # Route 1 fold-out
+        # (2) Gram-Schmidt orthogonalization. Skipped when (a) this is the
+        #     SE-only ablation (use_ortho=False), or (b) Route 1 inference
+        #     (train_only=True and in eval mode).
+        do_ortho = self.use_ortho and (self.training or not self.train_only)
+        x_ortho = self._orthogonalize(x_proj) if do_ortho else x_proj
 
-        # (3) fuzzy gating
-        x_gated = x_ortho * self.gate(x_ortho)
+        # (3) fuzzy SE gate — computed from X' (Eq. 8 of the paper), not X_ortho
+        x_gated = x_ortho * self.gate(x_proj)
 
         # (4) recombine + residual (preserves YOLOv12 training stability)
         out = self.recomb(x_gated) + x
 
-        # (5) binding logits during training
+        # (5) binding logits during training (only if the binding head exists)
         if self.training:
-            z = self.binding_head(x_ortho)             # (B, K)
+            z = self.binding_head(x_ortho) if self.binding_head is not None else None
             return out, z
         return out

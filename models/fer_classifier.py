@@ -140,31 +140,56 @@ class YOLOv12Backbone(nn.Module):
 
 
 class TinyHead(nn.Module):
-    """Global-pools P3 & P4, concatenates, predicts K emotion logits."""
+    """Global-pools P3 & P4, concatenates, predicts K emotion logits.
+
+    `forward(..., return_feat=True)` also returns the pooled penultimate
+    feature vector (used for the t-SNE visualization in the paper)."""
 
     def __init__(self, p3_ch, p4_ch, num_emotions):
         super().__init__()
         self.pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Linear(p3_ch + p4_ch, num_emotions)
 
-    def forward(self, p3, p4):
+    def forward(self, p3, p4, return_feat=False):
         f = torch.cat([self.pool(p3).flatten(1), self.pool(p4).flatten(1)], dim=1)
-        return self.fc(f)
+        logits = self.fc(f)
+        return (logits, f) if return_feat else logits
+
+
+# Ablation modes (Table 2 of the paper). The fuzzy loss is a separate,
+# loss-level switch handled by the trainer, not by the architecture.
+ABLATION_MODES = {
+    "baseline":    dict(enabled=False),                              # backbone + head
+    "se":          dict(enabled=True, use_ortho=False, use_binding=False),
+    "fleo_nobind": dict(enabled=True, use_ortho=True,  use_binding=False),
+    "fleo_full":   dict(enabled=True, use_ortho=True,  use_binding=True),
+}
 
 
 class FLEOClassifier(nn.Module):
     """
-    End-to-end FER model with FLEO at P3 and P4.
+    End-to-end FER model: backbone -> (FLEO @ P3,P4) -> head.
+
+    mode (ablation, see ABLATION_MODES):
+        baseline    : no neck module (backbone + head only)
+        se          : SE gate only (no orthogonalization, no binding)
+        fleo_nobind : Gram-Schmidt + SE, no binding head
+        fleo_full   : full FLEO block (default)
 
     forward(x) returns:
-        training : (logits (B,K), z (B,K))   z = averaged binding logits
+        training : (logits (B,K), z (B,K) or None)   z = averaged binding logits
         eval     : logits (B,K)
     """
 
     def __init__(self, num_emotions=7, p3_ch=64, p4_ch=128,
                  subspace_dim=16, train_only=True,
-                 backbone="tiny", pretrained=True):
+                 backbone="tiny", pretrained=True, mode="fleo_full"):
         super().__init__()
+        if mode not in ABLATION_MODES:
+            raise ValueError(f"mode must be one of {list(ABLATION_MODES)}, got {mode!r}")
+        self.mode = mode
+        spec = ABLATION_MODES[mode]
+
         if backbone in ("resnet18", "resnet34", "resnet50"):
             self.backbone = ResNetBackbone(backbone, pretrained=pretrained)
             p3_ch, p4_ch = self.backbone.p3_ch, self.backbone.p4_ch
@@ -173,9 +198,36 @@ class FLEOClassifier(nn.Module):
             p3_ch, p4_ch = self.backbone.p3_ch, self.backbone.p4_ch
         else:
             self.backbone = TinyBackbone(p3_ch, p4_ch)
-        self.fleo_p3 = FLEOModule(p3_ch, num_emotions, subspace_dim, train_only=train_only)
-        self.fleo_p4 = FLEOModule(p4_ch, num_emotions, subspace_dim, train_only=train_only)
+
+        self.has_neck = spec["enabled"]
+        if self.has_neck:
+            self.fleo_p3 = FLEOModule(p3_ch, num_emotions, subspace_dim,
+                                      train_only=train_only,
+                                      use_ortho=spec["use_ortho"],
+                                      use_binding=spec["use_binding"])
+            self.fleo_p4 = FLEOModule(p4_ch, num_emotions, subspace_dim,
+                                      train_only=train_only,
+                                      use_ortho=spec["use_ortho"],
+                                      use_binding=spec["use_binding"])
         self.head = TinyHead(p3_ch, p4_ch, num_emotions)
+
+    def forward(self, x, return_feat=False):
+        p3, p4 = self.backbone(x)
+        z = None
+        if self.has_neck:
+            if self.training:
+                p3, z3 = self.fleo_p3(p3)
+                p4, z4 = self.fleo_p4(p4)
+                if z3 is not None and z4 is not None:
+                    z = (z3 + z4) / 2                   # combine binding logits
+            else:
+                p3 = self.fleo_p3(p3)
+                p4 = self.fleo_p4(p4)
+        out = self.head(p3, p4, return_feat=return_feat)
+        if self.training:
+            logits = out[0] if return_feat else out
+            return (logits, z, out[1]) if return_feat else (logits, z)
+        return out                                     # logits, or (logits, feat)
 
     def forward(self, x):
         p3, p4 = self.backbone(x)

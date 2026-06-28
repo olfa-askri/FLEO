@@ -46,6 +46,49 @@ def compute_metrics(preds: torch.Tensor, targets: torch.Tensor) -> dict:
     return {"accuracy": acc, "macro_f1": _macro_f1_torch(preds, targets, num_classes)}
 
 
+def confusion_matrix(preds: torch.Tensor, targets: torch.Tensor, num_classes: int):
+    """Return the K x K confusion matrix (rows = true, cols = predicted)."""
+    cm = torch.zeros(num_classes, num_classes, dtype=torch.long)
+    for t, p in zip(targets.view(-1).cpu(), preds.view(-1).cpu()):
+        cm[t.long(), p.long()] += 1
+    return cm
+
+
+def full_report(preds: torch.Tensor, targets: torch.Tensor, num_classes: int,
+                class_names=None) -> dict:
+    """Accuracy, macro-F1, per-class precision/recall/F1, and confusion matrix.
+
+    This is what feeds Table 2 (acc, macro-F1) and the per-class /
+    confusion-matrix analysis (anger/sad, fear/surprise) in the paper.
+    """
+    cm = confusion_matrix(preds, targets, num_classes).float()
+    tp = cm.diag()
+    fp = cm.sum(0) - tp
+    fn = cm.sum(1) - tp
+    precision = torch.where(tp + fp > 0, tp / (tp + fp), torch.zeros_like(tp))
+    recall = torch.where(tp + fn > 0, tp / (tp + fn), torch.zeros_like(tp))
+    denom = precision + recall
+    f1 = torch.where(denom > 0, 2 * precision * recall / denom, torch.zeros_like(tp))
+
+    names = class_names or [str(i) for i in range(num_classes)]
+    per_class = {
+        names[c]: {
+            "precision": float(precision[c]) * 100.0,
+            "recall": float(recall[c]) * 100.0,
+            "f1": float(f1[c]) * 100.0,
+            "support": int(cm[c].sum()),
+        }
+        for c in range(num_classes)
+    }
+    return {
+        "accuracy": float(tp.sum() / cm.sum()) * 100.0,
+        "macro_f1": float(f1.mean()) * 100.0,
+        "per_class": per_class,
+        "confusion_matrix": cm.long().tolist(),
+        "class_names": names,
+    }
+
+
 def orthogonality_check(e: torch.Tensor, eps: float = 1e-3) -> float:
     """
     Verify the Gram-Schmidt guarantee  <e_i, e_j> ~ 0 for i != j.

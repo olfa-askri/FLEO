@@ -96,6 +96,39 @@ def test_end_to_end_train_step():
     assert l1.item() < l0.item(), "loss did not decrease after one step"
 
 
+def test_ablation_modes():
+    """Each Table-2 mode builds, runs, and yields binding logits only when due."""
+    x = torch.randn(2, 3, 128, 128)
+    expect_z = {"baseline": False, "se": False, "fleo_nobind": False, "fleo_full": True}
+    for mode, has_z in expect_z.items():
+        m = FLEOClassifier(num_emotions=7, subspace_dim=8, mode=mode).train()
+        logits, z = m(x)
+        assert logits.shape == (2, 7)
+        assert (z is not None) == has_z, f"mode {mode}: binding logits mismatch"
+        m.eval()
+        assert m(x).shape == (2, 7)                  # eval path returns logits only
+
+
+def test_loss_handles_no_binding_and_hard_targets():
+    C = normalize_confusion(FACS_PRIOR_7)
+    crit = FLEOTotalLoss(C, use_fuzzy=False)          # plain CE, ablation row
+    logits = torch.randn(8, 7, requires_grad=True)
+    targets = torch.randint(0, 7, (8,))
+    out = crit(logits, None, targets)                 # z=None must be tolerated
+    assert out["bind"].item() == 0.0
+    out["total"].backward()
+    assert torch.isfinite(logits.grad).all()
+
+
+def test_full_report_keys():
+    from utils.metrics import full_report
+    preds = torch.randint(0, 7, (200,))
+    targets = torch.randint(0, 7, (200,))
+    rep = full_report(preds, targets, 7)
+    assert {"accuracy", "macro_f1", "per_class", "confusion_matrix"} <= set(rep)
+    assert len(rep["confusion_matrix"]) == 7 and len(rep["confusion_matrix"][0]) == 7
+
+
 def _run_all():
     fns = [v for k, v in globals().items() if k.startswith("test_")]
     for fn in fns:
