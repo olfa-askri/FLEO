@@ -98,8 +98,18 @@ class YOLOv12Backbone(nn.Module):
         super().__init__()
         from ultralytics import YOLO
 
-        src = f"{variant}.pt" if pretrained else f"{variant}.yaml"
-        det = YOLO(src).model                      # DetectionModel
+        # Prefer pretrained COCO weights, but fall back to building the
+        # architecture from the YAML config if the .pt cannot be downloaded
+        # (offline runners, missing release asset, network blocked, ...).
+        det = None
+        if pretrained:
+            try:
+                det = YOLO(f"{variant}.pt").model
+            except Exception as e:                 # download/load failed
+                print(f"[YOLOv12Backbone] could not load {variant}.pt "
+                      f"({type(e).__name__}); building from {variant}.yaml instead.")
+        if det is None:
+            det = YOLO(f"{variant}.yaml").model    # architecture only, no weights
         self.layers = det.model                    # ModuleList (each has .f, .i)
         self._p3_idx = self._p4_idx = None
         self.p3_ch = self.p4_ch = None
