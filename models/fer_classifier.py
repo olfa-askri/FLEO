@@ -174,18 +174,27 @@ class YOLOv12Backbone(nn.Module):
 
 
 class TinyHead(nn.Module):
-    """Global-pools P3 & P4, concatenates, predicts K emotion logits.
+    """Global-pools P3 & P4, concatenates, and predicts K emotion logits
+    through a small MLP (more capacity than a single linear layer; helps the
+    model actually fit FER, and the dropout regularizes it).
 
-    `forward(..., return_feat=True)` also returns the pooled penultimate
-    feature vector (used for the t-SNE visualization in the paper)."""
+    `forward(..., return_feat=True)` also returns the penultimate feature
+    vector (used for the t-SNE visualization in the paper)."""
 
-    def __init__(self, p3_ch, p4_ch, num_emotions):
+    def __init__(self, p3_ch, p4_ch, num_emotions, hidden=256, dropout=0.3):
         super().__init__()
         self.pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Linear(p3_ch + p4_ch, num_emotions)
+        self.proj = nn.Sequential(
+            nn.Linear(p3_ch + p4_ch, hidden),
+            nn.BatchNorm1d(hidden),
+            nn.SiLU(inplace=True),
+            nn.Dropout(dropout),
+        )
+        self.fc = nn.Linear(hidden, num_emotions)
 
     def forward(self, p3, p4, return_feat=False):
-        f = torch.cat([self.pool(p3).flatten(1), self.pool(p4).flatten(1)], dim=1)
+        x = torch.cat([self.pool(p3).flatten(1), self.pool(p4).flatten(1)], dim=1)
+        f = self.proj(x)                               # penultimate features
         logits = self.fc(f)
         return (logits, f) if return_feat else logits
 
