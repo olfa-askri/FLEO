@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+datasets/
+runs/
+export/
+quantized/
+compiled/
+results/*.json
+results/*.md
+*.onnx
+*.pt
+*.xmodel
+!requirements.txt
+.venv/
