@@ -12,3 +12,4 @@ results/*.md
 *.xmodel
 !requirements.txt
 .venv/
+.pytest_cache/
