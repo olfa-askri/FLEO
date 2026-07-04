@@ -10,7 +10,7 @@ save-list are unchanged -- the insertion is transparent to the runner.
 Public helpers:
     build_fleo_yolo(cfg, nc, K, d, mode)  -> ultralytics.YOLO with FLEO necks
     set_route(model, mode)                -> switch all FLEO sites' route
-    attach_fleo_loss(det_model, ...)      -> add the FLEO regularizer to .loss
+    FLEODetectionModel                    -> DetectionModel that adds the FLEO aux loss
     register_fleo()                       -> best-effort YAML registration
 """
 

@@ -3,7 +3,7 @@ regularized facial-emotion detector.
 
 Public API:
     FLEO, GramSchmidt, HouseholderOrtho, gram_schmidt
-    FLEORegularizer, orthogonality_penalty, binding_loss
+    fleo_aux_loss, orthogonality_penalty, binding_loss
     register_fleo   -- inject FLEO into ultralytics so custom YAMLs resolve it.
 """
 
