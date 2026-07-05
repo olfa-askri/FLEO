@@ -21,10 +21,31 @@ from pathlib import Path
 import numpy as np
 
 from .emotions import CANON, NAME_TO_ID, FER2013_TO_CANON
-from .prepare_common import ensure_dirs, write_label, write_data_yaml, save_gray_as_jpg
+from .prepare_common import (
+    ensure_dirs, write_label, write_data_yaml, save_gray_as_jpg,
+    is_image, has_images, split_from_path, print_tree,
+)
 
 # FER2013 "Usage" -> our split.  PublicTest + PrivateTest both map to val.
 USAGE_TO_SPLIT = {"Training": "train", "PublicTest": "val", "PrivateTest": "val"}
+
+# Emotion folder-name aliases -> canonical FER name.
+EMOTION_ALIASES = {
+    "anger": "angry", "angry": "angry",
+    "disgust": "disgust", "disgusted": "disgust",
+    "fear": "fear", "afraid": "fear", "fearful": "fear",
+    "happy": "happy", "happiness": "happy",
+    "sad": "sad", "sadness": "sad",
+    "surprise": "surprise", "surprised": "surprise", "surprising": "surprise",
+    "neutral": "neutral", "neutrality": "neutral",
+}
+
+
+def _canon_emotion(name: str) -> str | None:
+    n = name.strip().lower()
+    if n in NAME_TO_ID:
+        return n
+    return EMOTION_ALIASES.get(n)
 
 
 def from_csv(src: Path, out: Path, limit: int | None = None):
@@ -48,37 +69,50 @@ def from_csv(src: Path, out: Path, limit: int | None = None):
 
 
 def from_folder(src: Path, out: Path, limit: int | None = None):
+    """Auto-discover emotion-named class folders anywhere under ``src``.
+
+    Handles ``<root>/{train,test}/<emotion>/*.jpg`` as well as nested
+    (``<root>/DATASET/train/<emotion>/``) or split-less (``<root>/<emotion>/``)
+    layouts.  Split is inferred from the path; if no val split is present, ~15%
+    of the data is carved off deterministically.
+    """
     ensure_dirs(out)
-    # Map folder split names -> our split.
-    split_map = {"train": "train", "training": "train", "test": "val",
-                 "val": "val", "validation": "val", "public_test": "val", "private_test": "val"}
+
+    # Gather (image_path, split_or_None, class_id) over all emotion class dirs.
+    items: list[tuple[Path, str | None, int]] = []
+    for d in sorted(src.rglob("*")):
+        if not d.is_dir():
+            continue
+        canon = _canon_emotion(d.name)
+        if canon is None or not has_images(d):
+            continue
+        split = split_from_path(d)
+        cls = NAME_TO_ID[canon]
+        for f in sorted(d.iterdir()):
+            if is_image(f):
+                items.append((f, split, cls))
+
+    if not items:
+        print_tree(src)
+        raise SystemExit(
+            f"No emotion-named image folders found under {src}.\n"
+            f"Expected folders like train/happy, test/angry, ... (see tree above)."
+        )
+
+    # If nothing was labelled 'val', deterministically carve ~15% off for val.
+    has_val = any(s == "val" for _, s, _ in items)
     counts = {"train": 0, "val": 0}
     n = 0
-    for split_dir in sorted(src.iterdir()):
-        if not split_dir.is_dir():
-            continue
-        split = split_map.get(split_dir.name.lower())
+    for i, (img_path, split, cls) in enumerate(items):
+        if limit and n >= limit:
+            break
         if split is None:
-            continue
-        for cls_dir in sorted(split_dir.iterdir()):
-            if not cls_dir.is_dir():
-                continue
-            name = cls_dir.name.lower()
-            if name not in NAME_TO_ID:
-                # tolerate alternative folder names
-                alias = {"anger": "angry", "happiness": "happy", "sadness": "sad"}.get(name)
-                if alias is None:
-                    continue
-                name = alias
-            cls = NAME_TO_ID[name]
-            for img_path in sorted(cls_dir.glob("*")):
-                if limit and n >= limit:
-                    break
-                stem = f"fer_{n:06d}"
-                _copy_as_jpg(img_path, out / "images" / split / f"{stem}.jpg")
-                write_label(out, split, stem, cls)
-                counts[split] += 1
-                n += 1
+            split = "val" if (not has_val and i % 7 == 0) else "train"
+        stem = f"fer_{n:06d}"
+        _copy_as_jpg(img_path, out / "images" / split / f"{stem}.jpg")
+        write_label(out, split, stem, cls)
+        counts[split] += 1
+        n += 1
     return counts
 
 
@@ -97,12 +131,27 @@ def main():
 
     src = Path(args.src)
     out = Path(args.out)
+
+    if not src.exists():
+        parent = src.parent if src.parent.exists() else Path("/kaggle/input")
+        print_tree(parent, max_depth=2)
+        raise SystemExit(
+            f"--src does not exist: {src}\n"
+            f"Check the mounted dataset name above and pass the correct path "
+            f"(e.g. --src /kaggle/input/<dataset-folder>)."
+        )
+
     if src.is_file() and src.suffix.lower() == ".csv":
         counts = from_csv(src, out, args.limit)
-    elif src.is_dir():
-        counts = from_folder(src, out, args.limit)
     else:
-        raise SystemExit(f"Unrecognized --src: {src}")
+        # A directory: prefer an embedded fer2013.csv, else discover image folders.
+        csvs = list(src.rglob("fer2013.csv")) + list(src.rglob("*.csv"))
+        if csvs and any(c.name.lower() == "fer2013.csv" for c in csvs):
+            csv = next(c for c in csvs if c.name.lower() == "fer2013.csv")
+            print(f"[fer2013] using CSV {csv}")
+            counts = from_csv(csv, out, args.limit)
+        else:
+            counts = from_folder(src, out, args.limit)
 
     yml = write_data_yaml(out, CANON)
     print(f"FER2013 prepared -> {out}  counts={counts}")

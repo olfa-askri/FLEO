@@ -37,18 +37,32 @@ import torch; print("CUDA:", torch.cuda.is_available(), "|", torch.cuda.get_devi
 
 ---
 
-## 2. Prepare the datasets → YOLO detection format
+## 2. Check what actually mounted, then prepare the datasets
 
-The prep scripts auto-detect the on-disk layout (FER2013 emotion folders; RAF-DB
-either the official `list_patition_label.txt`+`aligned` form **or** the numeric
-`train/test/1..7/` folder form used by `shuvoalok/raf-db-dataset`).
+**First, print the real mount names** (they must match your `--src`; if a dataset
+is missing here, attach it via *Add Input*):
+
+```python
+import os
+for d in sorted(os.listdir("/kaggle/input")):
+    print("/kaggle/input/" + d)
+```
+
+Then convert to YOLO detection format. The prep scripts **auto-discover** images
+under `--src` regardless of nesting, and handle every common layout:
+FER2013 emotion folders (or `fer2013.csv`); RAF-DB official
+`list_patition_label.txt`+`aligned`, numeric `train/test/1..7/` folders,
+emotion-named folders, **or** a `*labels*.csv` release. Adjust the paths below to
+match step 2's output if the folder names differ.
 
 ```python
 !python -m data.prepare_fer2013 --src /kaggle/input/fer2013        --out datasets/fer2013
 !python -m data.prepare_rafdb   --src /kaggle/input/raf-db-dataset --out datasets/rafdb
 ```
 
-Each writes `datasets/<name>/data.yaml` (7 classes, canonical FER order). Sanity check:
+Each writes `datasets/<name>/data.yaml` (7 classes, canonical FER order). If a path
+is wrong the script prints the directory tree so you can spot the correct one.
+Sanity check:
 
 ```python
 !ls datasets/fer2013/images/train | head -3 ; !cat datasets/fer2013/data.yaml
