@@ -18,8 +18,12 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .emotions import CANON, RAFDB_TO_CANON
+from .emotions import CANON, NAME_TO_ID, RAFDB_TO_CANON
 from .prepare_common import ensure_dirs, write_label, write_data_yaml
+
+# Folder-form split names -> our split (train/val).
+_SPLIT_MAP = {"train": "train", "training": "train", "test": "val",
+              "val": "val", "valid": "val", "validation": "val"}
 
 
 def _find(src: Path, *cands: str) -> Path | None:
@@ -44,6 +48,53 @@ def _resolve_image(aligned_dir: Path, base: str) -> Path | None:
     return None
 
 
+def _find_split_dirs(src: Path):
+    """Locate train/ and test/ dirs with numeric (1..7) class subfolders.
+
+    Handles the popular Kaggle folder-form RAF-DB releases (e.g.
+    shuvoalok/raf-db-dataset), whose layout is ``<root>/[DATASET/]{train,test}/<1..7>/``
+    instead of the official aligned-images + list_patition_label.txt form.
+    """
+    found: dict[str, Path] = {}
+    for p in [src, *[d for d in src.rglob("*") if d.is_dir()]]:
+        name = p.name.lower()
+        if name in _SPLIT_MAP and any(
+            (p / str(i)).is_dir() for i in range(1, 8)
+        ):
+            found.setdefault(_SPLIT_MAP[name], p)
+        if "train" in found and "val" in found:
+            break
+    return found
+
+
+def from_folder(split_dirs: dict[str, Path], out: Path, limit: int | None = None):
+    """Convert numeric-class-folder RAF-DB (labels 1..7) into YOLO detection form."""
+    from PIL import Image
+
+    ensure_dirs(out)
+    counts = {"train": 0, "val": 0}
+    n = 0
+    for split, root in split_dirs.items():
+        for raw in range(1, 8):
+            cls_dir = root / str(raw)
+            if not cls_dir.is_dir():
+                continue
+            cls = RAFDB_TO_CANON[raw]
+            for img_path in sorted(cls_dir.glob("*")):
+                if not img_path.is_file():
+                    continue
+                if limit and n >= limit:
+                    break
+                stem = f"raf_{n:06d}"
+                Image.open(img_path).convert("RGB").save(
+                    out / "images" / split / f"{stem}.jpg", quality=95
+                )
+                write_label(out, split, stem, cls)
+                counts[split] += 1
+                n += 1
+    return counts
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--src", required=True, help="RAF-DB root")
@@ -57,10 +108,20 @@ def main():
     label_file = _find(src, "EmoLabel/list_patition_label.txt", "list_patition_label.txt")
     aligned = _find(src, "Image/aligned", "aligned", "Image/original", "original")
     if label_file is None or aligned is None:
-        raise SystemExit(
-            f"Could not locate label file / aligned images under {src}\n"
-            f"  label_file={label_file}  aligned_dir={aligned}"
-        )
+        # Fall back to the folder-form layout (numeric 1..7 class dirs).
+        split_dirs = _find_split_dirs(src)
+        if not split_dirs:
+            raise SystemExit(
+                f"Could not locate RAF-DB under {src} in either layout:\n"
+                f"  (official) label_file={label_file} aligned_dir={aligned}\n"
+                f"  (folder)   no train/test dir with numeric 1..7 subfolders found"
+            )
+        counts = from_folder(split_dirs, out, args.limit)
+        yml = write_data_yaml(out, CANON)
+        print(f"RAF-DB (folder form) prepared -> {out}  counts={counts}")
+        print(f"data.yaml: {yml}")
+        return
+
     aligned = aligned if aligned.is_dir() else aligned.parent
 
     from PIL import Image
