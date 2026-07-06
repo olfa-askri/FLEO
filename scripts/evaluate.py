@@ -64,7 +64,13 @@ def _letterbox(img, imgsz=640, stride=32):
 
 
 def _topclass_from_head(out, nc):
-    """out: (1, 4+nc, N) decoded Detect output. Return predicted class id."""
+    """out: (1, 4+nc, N) decoded Detect output. Return predicted class id.
+
+    Single-object rule: for each emotion class take its maximum confidence over
+    all anchors, then pick the class with the highest such confidence.  This is
+    more robust than trusting one anchor's argmax (a single spurious anchor can't
+    flip the decision) and matches "is emotion X present in this frame".
+    """
     out = np.asarray(out)
     if out.ndim == 3:
         out = out[0]
@@ -74,20 +80,20 @@ def _topclass_from_head(out, nc):
         cls_scores = out[:, 4 : 4 + nc].T
     else:
         raise ValueError(f"Unexpected head output shape {out.shape} for nc={nc}")
-    best_anchor = cls_scores.max(axis=0).argmax()
-    return int(cls_scores[:, best_anchor].argmax())
+    return int(cls_scores.max(axis=1).argmax())  # per-class max over anchors -> argmax
 
 
 # ----------------------------------------------------------------------------- predictors
 class TorchPredictor:
     def __init__(self, weights=None, det_model=None, route="full", device="cpu"):
         import torch
-        from fleo.yolo_integration import set_route
+        from fleo.yolo_integration import set_route, register_torch_safe_globals
 
         self.torch = torch
         if det_model is None:
             from ultralytics import YOLO
 
+            register_torch_safe_globals()  # so a FLEO checkpoint unpickles cleanly
             yolo = YOLO(weights)
             det_model = yolo.model
         self.model = det_model.to(device).eval()

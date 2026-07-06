@@ -28,6 +28,7 @@ from pathlib import Path
 import numpy as np
 
 from scripts.evaluate import TorchPredictor, OnnxPredictor, evaluate
+from fleo.yolo_integration import set_route
 
 # variant label -> route mode for the torch predictor
 VARIANTS = {
@@ -59,9 +60,12 @@ def main():
     fold_deltas, q_deltas = [], []
 
     for si, w in enumerate(args.weights):
+        # Load the checkpoint once per seed; the routes are the SAME weights with
+        # the orthogonalization operator swapped, so we just flip the mode in place.
+        pred = TorchPredictor(weights=w, route="full", device=args.device)
         seed_scores = {}
         for v, mode in VARIANTS.items():
-            pred = TorchPredictor(weights=w, route=mode, device=args.device)
+            set_route(pred.model, mode)
             m = evaluate(pred, args.data, args.imgsz)
             seed_scores[v] = m[args.metric]
             per_variant[v].append(m[args.metric])

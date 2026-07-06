@@ -30,25 +30,11 @@ import fleo  # noqa: F401  (ensure FLEO classes are importable for unpickling)
 ROUTE_TO_MODE = {"r1": "folded", "r2": "householder", "r3": "full", "full": "full"}
 
 
-def _register_safe_globals():
-    import torch
-
-    from fleo.fleo_block import FLEO, ConvBNAct, BindingHead
-    from fleo.orthogonal import GramSchmidt, HouseholderOrtho
-    from fleo.yolo_integration import FLEOWrap
-
-    try:
-        torch.serialization.add_safe_globals(
-            [FLEO, ConvBNAct, BindingHead, GramSchmidt, HouseholderOrtho, FLEOWrap]
-        )
-    except Exception:
-        pass
-
-
 def load_model(weights: str):
     from ultralytics import YOLO
+    from fleo.yolo_integration import register_torch_safe_globals
 
-    _register_safe_globals()  # so a FLEO checkpoint unpickles cleanly
+    register_torch_safe_globals()  # so a FLEO checkpoint unpickles cleanly
     yolo = YOLO(weights)
     return yolo.model
 

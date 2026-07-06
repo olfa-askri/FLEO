@@ -28,7 +28,8 @@ import yaml
 def train_baseline(args, seed: int):
     from ultralytics import YOLO
 
-    model = YOLO(args.cfg)
+    # COCO warm-start (yolo12s.pt) unless --scratch; big FER convergence gain.
+    model = YOLO(args.pretrained) if args.pretrained else YOLO(args.cfg)
     res = model.train(
         data=args.data, epochs=args.epochs, imgsz=args.imgsz, batch=args.batch,
         device=args.device, seed=seed, project=args.project,
@@ -46,6 +47,7 @@ def train_fleo(args, seed: int):
     Trainer = make_fleo_trainer(
         k=args.k, d=args.d, mode="full",
         lambda_ortho=args.lambda_ortho, lambda_bind=args.lambda_bind,
+        pretrained=args.pretrained,
     )
     overrides = dict(
         model=args.cfg, data=args.data, epochs=args.epochs, imgsz=args.imgsz,
@@ -105,6 +107,11 @@ def main():
                     help="mixed precision (default on)")
     ap.add_argument("--no-amp", dest="amp", action="store_false",
                     help="disable AMP if box loss still diverges to inf")
+    # COCO warm-start: --pretrained yolo12s.pt (default) or --scratch to disable.
+    ap.add_argument("--pretrained", default="yolo12s.pt",
+                    help="COCO weights to warm-start from (backbone/neck)")
+    ap.add_argument("--scratch", dest="pretrained", action="store_const", const="",
+                    help="train from random init instead of COCO warm-start")
     # FLEO hyper-parameters.
     ap.add_argument("--k", type=int, default=7, help="emotion subspaces K")
     ap.add_argument("--d", type=int, default=8, help="per-emotion width d")

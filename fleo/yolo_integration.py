@@ -159,6 +159,49 @@ def build_fleo_yolo(
     return yolo
 
 
+def register_torch_safe_globals():
+    """Allowlist FLEO classes for ``torch.load(weights_only=True)``.
+
+    Modern torch defaults to ``weights_only=True``; a FLEO checkpoint pickles the
+    custom module classes, so they must be on the safe-globals allowlist or the
+    load raises (or silently falls back).  Call this before ``YOLO(weights)`` on
+    any FLEO checkpoint (export / evaluate / deltas).
+    """
+    import torch
+
+    from .fleo_block import FLEO, ConvBNAct, BindingHead
+    from .orthogonal import GramSchmidt, HouseholderOrtho
+
+    try:
+        torch.serialization.add_safe_globals(
+            [FLEODetectionModel, FLEOWrap, FLEO, ConvBNAct, BindingHead,
+             GramSchmidt, HouseholderOrtho]
+        )
+    except Exception:
+        pass
+
+
+def load_pretrained_into(det, weights):
+    """Load matching (backbone/neck/head-by-name) weights from a .pt or model.
+
+    Shape-mismatched tensors (e.g. an nc=80 COCO head vs our nc=7 head) and the
+    FLEO-only modules are skipped by ultralytics' intersect_dicts, so this is a
+    safe warm-start.  Returns the number of tensors actually copied.
+    """
+    if not weights:  # None or "" (scratch)
+        return 0
+    try:
+        from ultralytics import YOLO
+
+        src = YOLO(weights).model if isinstance(weights, str) else weights
+        before = sum(v.numel() for v in det.state_dict().values())
+        det.load(src)
+        return before
+    except Exception as e:  # never let a warm-start failure abort training
+        print(f"[FLEO] pretrained warm-start skipped ({type(e).__name__}: {e})")
+        return 0
+
+
 def set_route(model, mode: str):
     """Switch every FLEO site to a deployment route ('full'|'folded'|'householder')."""
     det = getattr(model, "model", model)
@@ -176,13 +219,18 @@ def set_route(model, mode: str):
 
 
 def make_fleo_trainer(k: int = 7, d: int = 8, mode: str = "full",
-                      lambda_ortho: float = 0.01, lambda_bind: float = 0.01):
+                      lambda_ortho: float = 0.01, lambda_bind: float = 0.01,
+                      pretrained: str | None = None):
     """Return a DetectionTrainer subclass whose ``get_model`` yields a FLEO detector.
 
     Using a custom trainer is the robust way to keep FLEO through ``train()``:
     ultralytics rebuilds the model from the cfg inside ``setup_model``, so we make
     that rebuild produce the FLEO-wrapped model.  The auxiliary loss lives on the
     FLEODetectionModel class itself (picklable), so nothing extra is attached.
+
+    ``pretrained`` (e.g. ``"yolo12s.pt"``) warm-starts the backbone/neck from COCO
+    weights, which materially improves FER convergence; FLEO-only modules stay at
+    their init.
     """
     from ultralytics.models.yolo.detect import DetectionTrainer
 
@@ -193,8 +241,8 @@ def make_fleo_trainer(k: int = 7, d: int = 8, mode: str = "full",
                 cfg or "yolo12s.yaml", nc=nc, k=k, d=d, mode=mode,
                 lambda_ortho=lambda_ortho, lambda_bind=lambda_bind,
             )
-            if weights is not None:
-                det.load(weights)
+            # ultralytics-supplied resume weights take precedence over COCO warm-start.
+            load_pretrained_into(det, weights if weights is not None else pretrained)
             return det
 
     return FLEOTrainer
