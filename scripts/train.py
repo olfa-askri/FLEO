@@ -35,6 +35,7 @@ def train_baseline(args, seed: int):
         name=f"baseline_seed{seed}", exist_ok=True, verbose=True,
         **_extra(args),
     )
+    _announce_ckpt(model.trainer.save_dir)
     return model, res
 
 
@@ -53,7 +54,13 @@ def train_fleo(args, seed: int):
     )
     trainer = Trainer(overrides=overrides)
     trainer.train()
+    _announce_ckpt(trainer.save_dir)
     return trainer
+
+
+def _announce_ckpt(save_dir):
+    best = Path(save_dir) / "weights" / "best.pt"
+    print(f"[train] weights -> {best}")
 
 
 def _extra(args):
@@ -88,6 +95,9 @@ def main():
     ap.add_argument("--lambda-bind", type=float, default=0.01)
     args = ap.parse_args()
 
+    # Absolute project path so ultralytics saves exactly to <project>/<name>
+    # instead of nesting it under runs/detect/ (which breaks checkpoint lookup).
+    args.project = str(Path(args.project).resolve())
     Path(args.project).mkdir(parents=True, exist_ok=True)
     for seed in args.seeds:
         print(f"\n=== Training variant={args.variant} seed={seed} ===")

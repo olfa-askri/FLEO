@@ -26,6 +26,25 @@ def run(mod, *args):
     subprocess.run(cmd, check=True)
 
 
+def find_ckpt(project: str, name: str) -> str:
+    """Locate <name>/weights/best.pt, tolerating ultralytics' save-dir nesting."""
+    direct = Path(project) / name / "weights" / "best.pt"
+    if direct.exists():
+        return str(direct)
+    # Fall back to a search (handles runs/detect/... nesting on relative projects).
+    roots = [Path(project), Path(project).parent, Path.cwd()]
+    hits: list[Path] = []
+    for root in roots:
+        if root.exists():
+            hits += list(root.rglob(f"{name}/weights/best.pt"))
+    if not hits:
+        raise SystemExit(
+            f"Could not find trained checkpoint for '{name}'. Looked under "
+            f"{[str(r) for r in roots]}. Did training finish?"
+        )
+    return str(max(hits, key=lambda p: p.stat().st_mtime))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--data", required=True)
@@ -39,6 +58,8 @@ def main():
     ap.add_argument("--skip-baseline", action="store_true")
     args = ap.parse_args()
 
+    # Match train.py: absolute project so checkpoints land at <project>/<name>.
+    args.project = str(Path(args.project).resolve())
     Path("results").mkdir(exist_ok=True)
     seeds = [str(s) for s in args.seeds]
 
@@ -52,7 +73,8 @@ def main():
         "--device", args.device, "--project", args.project, "--seeds", *seeds)
 
     # 2) Export the three routes from the seed-0 checkpoint (representative).
-    ckpt = f"{args.project}/fleo_seed{args.seeds[0]}/weights/best.pt"
+    ckpt = find_ckpt(args.project, f"fleo_seed{args.seeds[0]}")
+    print(f"[run_matrix] using checkpoint {ckpt}")
     for route in ("r1", "r2", "r3"):
         run("scripts.export", "--weights", ckpt, "--route", route,
             "--imgsz", args.imgsz, "--verify")
@@ -61,7 +83,7 @@ def main():
             "--out", f"results/workload_{route}.json")
 
     # 3) Delta_fold / accuracy across seeds.
-    weights = [f"{args.project}/fleo_seed{s}/weights/best.pt" for s in args.seeds]
+    weights = [find_ckpt(args.project, f"fleo_seed{s}") for s in args.seeds]
     run("scripts.deltas", "--data", args.data, "--dataset", args.dataset,
         "--imgsz", args.imgsz, "--device", args.device,
         "--weights", *weights, "--out", f"results/deltas_{args.dataset}.json")
