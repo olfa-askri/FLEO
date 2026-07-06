@@ -71,6 +71,15 @@ def _extra(args):
         extra["patience"] = args.patience
     if args.lr0 is not None:
         extra["lr0"] = args.lr0
+    # Augmentation controls. FER is cast as detection with a single *full-image*
+    # box, so mosaic/mixup (which stitch several images -> several full-image
+    # boxes of different emotions into one frame) corrupt the label and, under
+    # AMP, drive the box loss to inf -> a late-training collapse to mAP=0. They
+    # are therefore OFF by default for this task.
+    extra["mosaic"] = args.mosaic
+    extra["mixup"] = args.mixup
+    extra["close_mosaic"] = args.close_mosaic
+    extra["amp"] = args.amp
     return extra
 
 
@@ -88,6 +97,14 @@ def main():
     ap.add_argument("--workers", type=int, default=None)
     ap.add_argument("--patience", type=int, default=None)
     ap.add_argument("--lr0", type=float, default=None)
+    # Augmentation / stability (full-image-box FER: mosaic & mixup OFF by default).
+    ap.add_argument("--mosaic", type=float, default=0.0)
+    ap.add_argument("--mixup", type=float, default=0.0)
+    ap.add_argument("--close-mosaic", type=int, default=0)
+    ap.add_argument("--amp", dest="amp", action="store_true", default=True,
+                    help="mixed precision (default on)")
+    ap.add_argument("--no-amp", dest="amp", action="store_false",
+                    help="disable AMP if box loss still diverges to inf")
     # FLEO hyper-parameters.
     ap.add_argument("--k", type=int, default=7, help="emotion subspaces K")
     ap.add_argument("--d", type=int, default=8, help="per-emotion width d")
