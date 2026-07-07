@@ -92,6 +92,7 @@ def run_pipeline(args):
     q_pre = queue.Queue(maxsize=8)
     q_dpu = queue.Queue(maxsize=8)
     times = {"pre": [], "dpu": [], "post": [], "e2e": []}
+    completions = []  # wall-clock of each timed frame's completion (steady-state FPS)
     lock = threading.Lock()
 
     def stage_pre():
@@ -133,19 +134,26 @@ def run_pipeline(args):
                     times["dpu"].append(td1 - td0)
                     times["post"].append(tp1 - tp0)
                     times["e2e"].append(tp1 - t0)
+                    completions.append(tp1)  # for steady-state throughput
 
-    t_wall0 = time.perf_counter()
     threads = [threading.Thread(target=f) for f in (stage_pre, stage_dpu, stage_post)]
     for t in threads:
         t.start()
     for t in threads:
         t.join()
-    wall = time.perf_counter() - t_wall0
 
-    from ..metrics import fps_single, fps_pipe, e2e_latency_s
+    from ..metrics import fps_single, fps_pipe
 
     def ms(a):
         return float(np.mean(a) * 1000)
+
+    # Steady-state throughput over the *timed* window only: (N-1) completions span
+    # (last - first), so warm-up and pipeline fill/drain do not bias the rate.
+    if len(completions) > 1:
+        steady_span = completions[-1] - completions[0]
+        fps_measured = (len(completions) - 1) / steady_span if steady_span > 0 else None
+    else:
+        steady_span, fps_measured = None, None
 
     stage_means_s = [np.mean(times["pre"]), np.mean(times["dpu"]), np.mean(times["post"])]
     report = {
@@ -158,8 +166,8 @@ def run_pipeline(args):
         "L_e2e_ms": ms(times["e2e"]),
         "fps_single": fps_single(float(np.mean(times["e2e"]))),
         "fps_pipe_model": fps_pipe(stage_means_s),           # Eq. (17), 1/max stage
-        "fps_pipe_measured": len(times["e2e"]) / wall,        # observed throughput
-        "wall_s": wall,
+        "fps_pipe_measured": fps_measured,                    # steady-state observed
+        "steady_window_s": steady_span,
     }
     print(json.dumps(report, indent=2))
     if args.out:

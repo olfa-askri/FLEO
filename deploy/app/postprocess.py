@@ -34,5 +34,7 @@ def decode_topclass(out, nc: int, fix_point: int = 0) -> int:
         cls = a[:, 4 : 4 + nc].T          # (nc, N)
     else:
         raise ValueError(f"cannot locate {nc} class channels in shape {a.shape}")
-    best_anchor = cls.max(axis=0).argmax()
-    return int(cls[:, best_anchor].argmax())
+    # Per-class max confidence over anchors, then argmax -- identical to the host
+    # evaluator (scripts.evaluate._topclass_from_head), so FP32 and on-target INT8
+    # are compared under the exact same decision rule.
+    return int(cls.max(axis=1).argmax())

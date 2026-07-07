@@ -84,7 +84,13 @@ def main():
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
-    power_inputs = args.rails or (autodiscover_power_inputs() if args.autodiscover else autodiscover_power_inputs())
+    # Rail selection: explicit --rails wins; otherwise autodiscover power*_input
+    # files; if the board exposes no power*_input, fall back to summing V*I over
+    # in*/curr* rail pairs.  (--autodiscover is the default and kept for clarity.)
+    if args.rails:
+        power_inputs = args.rails
+    else:
+        power_inputs = autodiscover_power_inputs()
     vi_rails = [] if power_inputs else discover_vi_rails()
     if not power_inputs and not vi_rails:
         raise SystemExit("No INA226 rails found under /sys/class/hwmon. Pass --rails explicitly.")
