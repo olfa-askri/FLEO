@@ -18,6 +18,7 @@ the methodological context (this work deploys a YOLO detector on a DPU).
 | 7 | YOLOv7-tiny HLS | Springer JRTIP, Scopus | 2023 | detection | — | — | YOLOv7 | Zynq | — | — | HLS accelerator |
 | 8 | YOLOv2 accelerator | MDPI Sensors, Scopus | 2025 | detection | — | — | YOLOv2 | Zynq-7000 | — | — | Zynq accelerator |
 | 9 | **This work (FLEO)** | target | 2025 | FER | FER2013 + RAF-DB | ~73* / ~83* | YOLOv12-S + FLEO | ZCU104 (B4096) | ~30* | pending | fold-out methodology |
+| 🏆 | **Winner ->** | — | — | — | **This work** | **This work** | **This work** | — | **This work** | Ando & Inoue | **This work** |
 
 ## Final line — who wins?
 
