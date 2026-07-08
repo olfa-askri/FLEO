@@ -15,6 +15,7 @@ the ZCU104 board, and Vivado reports).
 | 3 | Emotion recognizer (autistic) | — | custom | 72.9 | CNN | Virtex-7 | bespoke | 12-bit | — | — | — | — | — | portable recognizer |
 | 4 | Ando & Inoue | 2025 | FER2013 | 67.4 | CNN + DenseBox | Kria KV260 | B512 DPU | INT8 | 300 MHz | 25 | 7.34 ms | 2.7 W | ~9.3 | multi-thread DPU |
 | 5 | **This work (FLEO)** | 2025 | FER2013 + RAF-DB | ~73* / ~83* | YOLOv12-S + FLEO | ZCU104 | B4096 DPU | INT8 | 300 MHz | ~30* | ~14 ms* | pending | pending | **fold-out methodology** |
+| 🏆 | **Winner ->** | — | **This work** | **This work** | **This work** | — | — | tie | tie | **This work** | Ando & Inoue | **Ando & Inoue** | **Ando & Inoue** | **This work** |
 
 ## Where each number comes from (this work)
 | Column | Source |
