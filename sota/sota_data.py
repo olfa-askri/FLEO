@@ -48,14 +48,23 @@ RAFDB_SOTA = [
 # --- 2. FPGA expression-recognition systems (manuscript Table IX) ------------
 FPGA_FER_SYSTEMS = [
     # (system, platform, style, precision, throughput, note)
-    ("Phan-Xuan et al.", "FPGA (CNN)", "bespoke", "fixed-point", None, "hand-mapped layers"),
-    ("Vinh & Vinh", "Zynq SoC", "bespoke", "fixed-point", None, "detection+classification on Zynq"),
-    ("Ando & Inoue", "Zynq US+ (DPU)", "overlay", "INT8", "25 FPS", "det+cls on one DPU, CPU-bound"),
-    ("DNN-accel. FER (multi-thread)", "Zynq US+ Kria KV260 (B512)", "overlay", "INT8", None,
-     "arXiv 2511.02408 (2025); smallest DPU, multi-threaded det+cls"),
+    # Fields carry the *deployment* figures that matter at the edge: FER accuracy,
+    # FPS, power. These are the real head-to-head numbers (accuracy on FPGA is far
+    # below GPU SOTA for everyone -- small edge models).
+    ("Phan-Xuan et al. (2019)", "FPGA (CNN)", "bespoke", "fixed-point", None,
+     "hand-mapped layers"),
+    ("Vinh & Vinh (2019)", "Zynq SoC", "bespoke", "fixed-point", None,
+     "detection+classification on Zynq"),
+    ("CNN-FPGA (2020)", "FPGA @130 MHz", "bespoke", "fixed-point", "15 FPS",
+     "FER2013 ~66%; 6.37 ms/face"),
+    ("Ando & Inoue (2025)", "Zynq US+ Kria KV260 (B512)", "overlay", "INT8",
+     "25 FPS (2-thread)",
+     "arXiv 2511.02408; FER2013 acc=67.4%, power=2.7 W, L_dpu=7.34 ms, "
+     "det DenseBox AP=0.917; ~9.3 FPS/W -- the closest competitor"),
     ("Askri et al. (prior)", "-", "-", "-", None, "quantum-inspired FER optimization"),
     # Our rows -- filled from results at report time. B4096 is 8x the DPU of the
-    # 2025 KV260/B512 system above, so we trade area for throughput headroom.
+    # 2025 KV260/B512 baseline: more throughput headroom, but watch FPS/W since a
+    # larger DPU costs more power on a lightweight task (justify the choice).
     ("This work, R1 (fold-out)", "ZCU104 (B4096)", "overlay", "INT8", None, "pending"),
     ("This work, R2 (Householder)", "ZCU104 (B4096)", "overlay", "INT8", None, "pending"),
     ("This work, R3 (hybrid PS/PL)", "ZCU104 (B4096)", "overlay", "INT8+PS", None, "pending"),
