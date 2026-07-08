@@ -102,7 +102,8 @@ def _detect_p3_p4_indices(det_model):
     return idxs[0], idxs[1]  # P3, P4 (ascending stride order in YOLO necks)
 
 
-def wrap_fleo(det, nc: int = 7, k: int = 7, d: int = 8, mode: str = "full", imgsz: int = 64):
+def wrap_fleo(det, nc: int = 7, k: int = 7, d: int = 8, mode: str = "full", imgsz: int = 64,
+             dropout: float = 0.0):
     """Wrap the P3/P4 neck layers of an existing DetectionModel with FLEO (in place)."""
     channels = _capture_out_channels(det, imgsz=imgsz)
     p3, p4 = _detect_p3_p4_indices(det)
@@ -113,7 +114,7 @@ def wrap_fleo(det, nc: int = 7, k: int = 7, d: int = 8, mode: str = "full", imgs
         if isinstance(det.model[idx], FLEOWrap):
             continue  # already wrapped
         orig = det.model[idx]
-        fleo = FLEO(c1, k=k, d=d, num_emotions=nc, mode=mode)
+        fleo = FLEO(c1, k=k, d=d, num_emotions=nc, mode=mode, dropout=dropout)
         det.model[idx] = FLEOWrap(orig, fleo)
     det._fleo_sites = (p3, p4)
     return det
@@ -126,15 +127,16 @@ def build_fleo_detection_model(
     d: int = 8,
     mode: str = "full",
     imgsz: int = 64,
-    lambda_ortho: float = 0.01,
+    lambda_ortho: float = 0.05,
     lambda_bind: float = 0.01,
+    dropout: float = 0.0,
 ):
     """Build a DetectionModel with the Detect head at ``nc`` and FLEO at P3/P4."""
     det = FLEODetectionModel(cfg, ch=3, nc=nc, verbose=False)
     det.lambda_ortho = lambda_ortho
     det.lambda_bind = lambda_bind
     det.names = {i: f"emotion_{i}" for i in range(nc)}
-    wrap_fleo(det, nc=nc, k=k, d=d, mode=mode, imgsz=imgsz)
+    wrap_fleo(det, nc=nc, k=k, d=d, mode=mode, imgsz=imgsz, dropout=dropout)
     return det
 
 
@@ -219,8 +221,8 @@ def set_route(model, mode: str):
 
 
 def make_fleo_trainer(k: int = 7, d: int = 8, mode: str = "full",
-                      lambda_ortho: float = 0.01, lambda_bind: float = 0.01,
-                      pretrained: str | None = None):
+                      lambda_ortho: float = 0.05, lambda_bind: float = 0.01,
+                      pretrained: str | None = None, dropout: float = 0.0):
     """Return a DetectionTrainer subclass whose ``get_model`` yields a FLEO detector.
 
     Using a custom trainer is the robust way to keep FLEO through ``train()``:
@@ -239,7 +241,7 @@ def make_fleo_trainer(k: int = 7, d: int = 8, mode: str = "full",
             nc = self.data["nc"]
             det = build_fleo_detection_model(
                 cfg or "yolo12s.yaml", nc=nc, k=k, d=d, mode=mode,
-                lambda_ortho=lambda_ortho, lambda_bind=lambda_bind,
+                lambda_ortho=lambda_ortho, lambda_bind=lambda_bind, dropout=dropout,
             )
             # ultralytics-supplied resume weights take precedence over COCO warm-start.
             load_pretrained_into(det, weights if weights is not None else pretrained)

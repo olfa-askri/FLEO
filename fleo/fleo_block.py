@@ -88,6 +88,7 @@ class FLEO(nn.Module):
         d: int = 8,
         num_emotions: int = 7,
         mode: str = "full",
+        dropout: float = 0.0,
     ) -> None:
         super().__init__()
         assert mode in MODES, f"mode must be one of {MODES}, got {mode!r}"
@@ -96,6 +97,9 @@ class FLEO(nn.Module):
         self.d = d
         self.mid = k * d
         self.mode = mode
+        # Channel dropout on the gated features fights the extra-capacity
+        # overfitting FLEO otherwise shows over the plain detector.
+        self.drop = nn.Dropout2d(dropout) if dropout > 0 else nn.Identity()
 
         # 1x1 projection to K*d channels (the tensor that gets orthogonalized).
         self.proj = ConvBNAct(c1, self.mid, k=1)
@@ -140,7 +144,7 @@ class FLEO(nn.Module):
         # SE gate.
         xg = self.gate_in(x)
         s = torch.sigmoid(self.gate_fc(self.gate_pool(xg)))  # (B, mid, 1, 1)
-        gated = o * s
+        gated = self.drop(o * s)
 
         # Training-only signals for the auxiliary losses, stashed on the module
         # (plain attrs, not hooks/closures, so the model stays picklable).  Cleared

@@ -47,7 +47,7 @@ def train_fleo(args, seed: int):
     Trainer = make_fleo_trainer(
         k=args.k, d=args.d, mode="full",
         lambda_ortho=args.lambda_ortho, lambda_bind=args.lambda_bind,
-        pretrained=args.pretrained,
+        pretrained=args.pretrained, dropout=args.fleo_dropout,
     )
     overrides = dict(
         model=args.cfg, data=args.data, epochs=args.epochs, imgsz=args.imgsz,
@@ -82,6 +82,8 @@ def _extra(args):
     extra["mixup"] = args.mixup
     extra["close_mosaic"] = args.close_mosaic
     extra["amp"] = args.amp
+    extra["cos_lr"] = args.cos_lr          # cosine LR decay -> better generalization
+    extra["weight_decay"] = args.weight_decay
     return extra
 
 
@@ -112,11 +114,19 @@ def main():
                     help="COCO weights to warm-start from (backbone/neck)")
     ap.add_argument("--scratch", dest="pretrained", action="store_const", const="",
                     help="train from random init instead of COCO warm-start")
+    # Generalization knobs (help FLEO, which otherwise over-fits vs the baseline).
+    ap.add_argument("--cos-lr", dest="cos_lr", action="store_true", default=True,
+                    help="cosine LR schedule (default on)")
+    ap.add_argument("--no-cos-lr", dest="cos_lr", action="store_false")
+    ap.add_argument("--weight-decay", type=float, default=0.0008)
     # FLEO hyper-parameters.
     ap.add_argument("--k", type=int, default=7, help="emotion subspaces K")
     ap.add_argument("--d", type=int, default=8, help="per-emotion width d")
-    ap.add_argument("--lambda-ortho", type=float, default=0.01)
+    ap.add_argument("--lambda-ortho", type=float, default=0.05,
+                    help="orthogonality regularizer weight (stronger = constraint bites)")
     ap.add_argument("--lambda-bind", type=float, default=0.01)
+    ap.add_argument("--fleo-dropout", type=float, default=0.15,
+                    help="channel dropout inside FLEO to curb over-fitting")
     args = ap.parse_args()
 
     # Absolute project path so ultralytics saves exactly to <project>/<name>
