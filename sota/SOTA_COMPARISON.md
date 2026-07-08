@@ -10,8 +10,12 @@ Accuracy tables are **contextual**: published FER methods are GPU classifiers, w
 | VGG (Khaireddin & Chen) | 2021 | 73.28 | single VGG, heavy aug + tuning |
 | ResMaskingNet (single) | 2020 | 74.14 | Pham et al. |
 | LHC-Net | 2021 | 74.42 | Pecoraro et al., local multi-head channel |
-| ResMaskingNet (ensemble) | 2020 | 76.82 | 6-net ensemble |
 | Segmentation-VGG19 | 2021 | 75.97 | as reported |
+| EmoNeXt | 2023 | 76.50 | ConvNeXt-based, single model |
+| ResMaskingNet (ensemble) | 2020 | 76.82 | 6-net ensemble |
+| ConvNeXt + TripSE | 2025 | 77.50 | attention + feature fusion (approx 76-78) |
+| EfficientNet-B0 + GFPGAN | 2025 | 86.44 | NON-STANDARD: uses face restoration |
+| Diffusion synthetic aug. | 2024 | 96.47 | NON-STANDARD: extra synthetic training data |
 | **This work (FLEO, detection-cast)** | 2026 | -- | R1 fold-out, INT8 on B4096 |
 
 ### RAF-DB -- overall accuracy (as reported; protocols differ)
@@ -21,11 +25,16 @@ Accuracy tables are **contextual**: published FER methods are GPU classifiers, w
 | RAN | 2020 | 86.90 | Wang et al., region attention |
 | SCN | 2020 | 87.03 | self-cure network |
 | DACL | 2021 | 87.78 | deep attentive center loss |
+| EfficientFace | 2021 | 88.28 | lightweight, 1.28M params |
 | DAN | 2021 | 89.70 | distract your attention |
-| TransFER | 2021 | 90.91 | transformer-based |
 | EAC | 2022 | 90.35 | erasing attention consistency |
+| TransFER | 2021 | 90.91 | transformer-based |
+| DDAMFN | 2023 | 91.35 | dual-direction attention, 8.2M params |
 | APViT | 2022 | 91.98 | attentive pooling ViT |
+| TriCAFFNet | 2024 | 92.17 | tri-cross-attention transformer |
 | POSTER++ | 2023 | 92.21 | cross-fusion transformer |
+| FMAE-IAT | 2024 | 93.54 | ViT-Large, 304.5M params |
+| ResEmoteNet | 2024 | 94.76 | Roy et al., 80.24M params, current SOTA |
 | **This work (FLEO, detection-cast)** | 2026 | -- | R1 fold-out, INT8 on B4096 |
 
 ### FPGA expression-recognition systems (Table IX)
@@ -35,6 +44,7 @@ Accuracy tables are **contextual**: published FER methods are GPU classifiers, w
 | Phan-Xuan et al. | FPGA (CNN) | bespoke | fixed-point | -- | hand-mapped layers |
 | Vinh & Vinh | Zynq SoC | bespoke | fixed-point | -- | detection+classification on Zynq |
 | Ando & Inoue | Zynq US+ (DPU) | overlay | INT8 | 25 FPS | det+cls on one DPU, CPU-bound |
+| DNN-accel. FER (multi-thread) | Zynq US+ Kria KV260 (B512) | overlay | INT8 | -- | arXiv 2511.02408 (2025); smallest DPU, multi-threaded det+cls |
 | Askri et al. (prior) | - | - | - | -- | quantum-inspired FER optimization |
 | This work, R1 (fold-out) | ZCU104 (B4096) | overlay | INT8 | -- | pending |
 | This work, R2 (Householder) | ZCU104 (B4096) | overlay | INT8 | -- | pending |
