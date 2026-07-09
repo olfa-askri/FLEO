@@ -29,6 +29,15 @@ Synthèse pour reprendre le travail. Sources : `docs/SESSION_LOG.md` (journal co
 
 ## Résultats obtenus (par modèle)
 
+**MAJ 09/07 :** le run 333623534 a survécu jusqu'aux exports — l'utilisateur a récupéré
+tout `/kaggle/working` dans `C:\Users\BASSEM GZIGUEZ\OneDrive\Desktop\_output_\FLEO`
+(poids best/last des 2 modèles, courbes, exports R1/R2/R3 + workloads). FER2013 100 ep :
+baseline mAP50 **0,7608**, FLEO **0,7609** (égalité), FLEO P 0,725 / R 0,704, disgust
++6 pts sur la matrice de confusion. **Manquent** : `deltas_fer2013.json` (Δ_fold,
+accuracy, macro-F1 — le kernel est mort au mur des 12 h pendant/avant l'étape deltas)
+et tout RAF-DB (jamais entraîné). Les poids étant récupérés, les deltas sont calculables
+sans ré-entraîner (session Kaggle eval-only avec best.pt uploadés en dataset).
+
 | Run | Modèle | mAP50 | mAP50-95 | Notes |
 |---|---|---|---|---|
 | FER2013, 100 ep (1er run, **perdu** — wipe Kaggle) | Baseline YOLOv12-S | 0,764 | 0,764 | P 0,708 / R 0,72 |
