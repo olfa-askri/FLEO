@@ -27,12 +27,18 @@ from pathlib import Path
 import torch
 
 
-def build_model(weights: str, route: str, nc: int, imgsz: int):
-    """Rebuild the FLEO detector and load the route-rewritten weights."""
+def build_model(weights: str, route: str, nc: int, imgsz: int, cfg: str = "yolo12s.yaml"):
+    """Rebuild the FLEO detector and load the route-rewritten weights.
+
+    ``cfg`` selects the backbone family. Use ``yolov8s.yaml`` for a fully
+    DPU-native (convolution-only) backbone: YOLOv12's area-attention (A2C2f/AAttn)
+    and YOLOv11's PSA are not compilable by the DPUCZDX8G XIR flow, so the
+    single-DPU-subgraph deployment requires an attention-free backbone.
+    """
     from fleo.yolo_integration import build_fleo_detection_model, set_route
 
     mode = {"r1": "folded", "r2": "householder", "r3": "full"}[route]
-    det = build_fleo_detection_model("yolo12s.yaml", nc=nc, mode="full", imgsz=imgsz)
+    det = build_fleo_detection_model(cfg, nc=nc, mode="full", imgsz=imgsz)
     if route == "r2":
         set_route(det, "householder")
     det.load_state_dict(torch.load(weights, map_location="cpu"), strict=False)
@@ -68,6 +74,8 @@ def main():
     ap.add_argument("--imgsz", type=int, default=640)
     ap.add_argument("--mode", choices=["calib", "test"], default="calib")
     ap.add_argument("--calib-n", type=int, default=200)
+    ap.add_argument("--cfg", default="yolo12s.yaml",
+                    help="backbone cfg; use yolov8s.yaml for a DPU-native (attention-free) backbone")
     ap.add_argument("--out", default="quantized")
     ap.add_argument("--qat", action="store_true", help="use QAT processor (fallback)")
     args = ap.parse_args()
@@ -81,7 +89,7 @@ def main():
         )
 
     Path(args.out).mkdir(parents=True, exist_ok=True)
-    model = build_model(args.weights, args.route, args.nc, args.imgsz)
+    model = build_model(args.weights, args.route, args.nc, args.imgsz, args.cfg)
     dummy = torch.zeros(1, 3, args.imgsz, args.imgsz)
 
     quantizer = torch_quantizer(
@@ -90,9 +98,10 @@ def main():
     )
     q_model = quantizer.quant_model
 
-    # Feed calibration / evaluation data through the quantized model.
+    # xmodel export requires batch size 1; calibration can batch for speed.
+    calib_batch = 1 if args.mode == "test" else 8
     with torch.no_grad():
-        for xb in calib_loader(args.data, args.imgsz, args.calib_n):
+        for xb in calib_loader(args.data, args.imgsz, args.calib_n, batch=calib_batch):
             q_model(xb)
 
     if args.mode == "calib":
