@@ -34,6 +34,8 @@ The script auto-detects a few common dataset locations if --data is omitted.
 Best checkpoint (by macro-F1) is written to checkpoints/best_fleo.pt
 """
 
+from __future__ import annotations  # PEP 604 (X | None) on Python 3.8 (Vitis AI docker)
+
 import argparse
 import os
 import random
