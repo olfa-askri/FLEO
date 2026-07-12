@@ -61,8 +61,27 @@ def _extract_state_dict(weights: str) -> dict:
     return ckpt.float().state_dict()     # a bare nn.Module was pickled
 
 
+def _swap_silu_to_relu(module):
+    """Replace every nn.SiLU with nn.ReLU in place (DPU has no SiLU).
+
+    For HARDWARE metrics (FPS/LUT/DSP/power) this is enough on already-trained
+    weights: those metrics depend on architecture, not weight values. Detection
+    accuracy WILL drop (activation mismatch) — retrain with ReLU for real
+    accuracy (deploy/train_relu.py).
+    """
+    import torch.nn as nn
+    n = 0
+    for m in module.modules():
+        for name, child in list(m.named_children()):
+            if isinstance(child, nn.SiLU):
+                setattr(m, name, nn.ReLU(inplace=True))
+                n += 1
+    print(f"[force-relu] swapped {n} SiLU -> ReLU")
+    return module
+
+
 def build_model(weights: str, route: str, nc: int, imgsz: int,
-                cfg: str = "yolov8s.yaml"):
+                cfg: str = "yolov8s.yaml", force_relu: bool = False):
     """Rebuild the FLEO detector and load the route-rewritten weights.
 
     ``cfg`` selects the backbone family. Use ``yolov8s.yaml`` for a fully
@@ -95,6 +114,9 @@ def build_model(weights: str, route: str, nc: int, imgsz: int,
                 for i in range(self.nl)]
 
     detect.forward = types.MethodType(_raw_head, detect)
+
+    if force_relu:                       # DPU-compilable (hardware-metrics path)
+        _swap_silu_to_relu(det)
 
     det.eval()
     return det
@@ -189,6 +211,9 @@ def main():
                     help="backbone cfg; yolov8s.yaml is DPU-native (attention-free)")
     ap.add_argument("--out", default="quantized")
     ap.add_argument("--qat", action="store_true", help="use QAT processor (fallback)")
+    ap.add_argument("--force-relu", action="store_true",
+                    help="swap SiLU->ReLU on trained weights so it compiles on "
+                         "the DPU (hardware metrics valid; accuracy drops)")
     args = ap.parse_args()
 
     try:
@@ -200,7 +225,8 @@ def main():
         )
 
     Path(args.out).mkdir(parents=True, exist_ok=True)
-    model = build_model(args.weights, args.route, args.nc, args.imgsz, args.cfg)
+    model = build_model(args.weights, args.route, args.nc, args.imgsz, args.cfg,
+                        force_relu=args.force_relu)
     dummy = torch.zeros(1, 3, args.imgsz, args.imgsz)
 
     quantizer = torch_quantizer(
