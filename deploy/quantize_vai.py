@@ -77,32 +77,56 @@ def build_model(weights: str, route: str, nc: int, imgsz: int,
     return det
 
 
+def _letterbox(img_path, imgsz: int, color=(114, 114, 114)):
+    """Self-contained letterbox: read image -> resize keeping aspect ratio ->
+    pad to square -> BGR2RGB, CHW, /255. Returns numpy (3, imgsz, imgsz) float32.
+    Matches YOLOv8 default preprocessing so INT8 ranges reflect training."""
+    import cv2
+    import numpy as np
+
+    img = cv2.imread(str(img_path))
+    if img is None:
+        return None
+    h, w = img.shape[:2]
+    r = min(imgsz / h, imgsz / w)
+    nh, nw = int(round(h * r)), int(round(w * r))
+    resized = cv2.resize(img, (nw, nh), interpolation=cv2.INTER_LINEAR)
+    top = (imgsz - nh) // 2
+    left = (imgsz - nw) // 2
+    canvas = np.full((imgsz, imgsz, 3), color, np.uint8)
+    canvas[top:top + nh, left:left + nw] = resized
+    arr = canvas[:, :, ::-1].transpose(2, 0, 1)          # BGR->RGB, HWC->CHW
+    return np.ascontiguousarray(arr, dtype=np.float32) / 255.0
+
+
 def calib_loader(data_yaml: str, imgsz: int, n: int = 200, batch: int = 8):
-    """Yield calibration batches from the training split."""
+    """Yield calibration batches from the training split (self-contained)."""
     import yaml
-    from scripts.evaluate import _letterbox
 
     d = yaml.safe_load(Path(data_yaml).read_text())
     root = Path(d.get("path", "."))
-    train_rel = d["train"]
-    train_dir = root / train_rel
+    train_dir = root / d["train"]
+    if not train_dir.exists():                            # fallback: path already full
+        train_dir = Path(d["train"])
     exts = ("*.jpg", "*.jpeg", "*.png", "*.bmp")
     imgs = []
     for e in exts:
-        imgs += sorted(train_dir.rglob(e))       # rglob: images may be nested
+        imgs += sorted(train_dir.rglob(e))                # rglob: images may be nested
     imgs = imgs[:n]
     assert imgs, f"no calibration images under {train_dir}"
     print(f"calibrating on {len(imgs)} images from {train_dir}")
 
     buf = []
     for p in imgs:
-        arr = _letterbox(p, imgsz)               # expected: numpy (C,H,W) float
+        arr = _letterbox(p, imgsz)
+        if arr is None:
+            continue
         buf.append(torch.from_numpy(arr))
         if len(buf) == batch:
-            yield torch.stack(buf, 0) if buf[0].dim() == 3 else torch.cat(buf, 0)
+            yield torch.stack(buf, 0)
             buf = []
     if buf:
-        yield torch.stack(buf, 0) if buf[0].dim() == 3 else torch.cat(buf, 0)
+        yield torch.stack(buf, 0)
 
 
 def main():
