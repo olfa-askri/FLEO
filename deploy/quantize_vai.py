@@ -112,29 +112,51 @@ def calib_loader(data_yaml: str, imgsz: int, n: int = 200, batch: int = 8):
     import yaml
 
     d = yaml.safe_load(Path(data_yaml).read_text())
-    root = Path(d.get("path", "."))
-    train_dir = root / d["train"]
-    if not train_dir.exists():                            # fallback: path already full
-        train_dir = Path(d["train"])
+    yaml_dir = Path(data_yaml).resolve().parent
     exts = ("*.jpg", "*.jpeg", "*.png", "*.bmp")
-    imgs = []
-    for e in exts:
-        imgs += sorted(train_dir.rglob(e))                # rglob: images may be nested
-    imgs = imgs[:n]
-    assert imgs, f"no calibration images under {train_dir}"
-    print(f"calibrating on {len(imgs)} images from {train_dir}")
 
-    buf = []
+    # Try several ways to resolve the train images dir, robust to how the
+    # data.yaml was written (absolute Windows path, relative to yaml, etc.).
+    candidates = []
+    train_rel = d.get("train", "images/train")
+    if "path" in d:
+        candidates.append(Path(d["path"]) / train_rel)
+        candidates.append(yaml_dir / d["path"] / train_rel)
+    candidates.append(yaml_dir / train_rel)
+    candidates.append(Path(train_rel))
+    candidates.append(yaml_dir / "images")
+    candidates.append(yaml_dir)
+
+    imgs = []
+    used = None
+    for c in candidates:
+        if c.exists():
+            found = []
+            for e in exts:
+                found += sorted(c.rglob(e))
+            if found:
+                imgs, used = found[:n], c
+                break
+
+    print(f"[calib] resolved images dir: {used}")
+    print(f"[calib] image files found  : {len(imgs)}")
+    assert imgs, ("no calibration images found. Checked:\n  " +
+                  "\n  ".join(str(c) for c in candidates))
+
+    buf, loaded = [], 0
     for p in imgs:
         arr = _letterbox(p, imgsz)
         if arr is None:
             continue
+        loaded += 1
         buf.append(torch.from_numpy(arr))
         if len(buf) == batch:
             yield torch.stack(buf, 0)
             buf = []
     if buf:
         yield torch.stack(buf, 0)
+    print(f"[calib] images actually read: {loaded}")
+    assert loaded > 0, "found files but cv2 could not read any (corrupt/paths?)"
 
 
 def main():
