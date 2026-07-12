@@ -81,6 +81,21 @@ def build_model(weights: str, route: str, nc: int, imgsz: int,
           f"({len(missing)} missing, {len(unexpected)} unexpected)")
 
     set_route(det, mode)                 # r1 -> fold Gram-Schmidt out for the DPU
+
+    # Cut the Detect head so the model returns the raw per-scale feature maps
+    # (pure conv -> DPU-native). The DPU cannot run the Detect head's DFL decode
+    # / eltwise SUB / DIV / strided_slice, so those move to the ARM CPU
+    # (postprocess_arm.py). Without this, vai_c_xir aborts with
+    # "Op_type 18 is invalid for xcompiler".
+    import types
+    detect = det.model[-1]
+
+    def _raw_head(self, x):
+        return [torch.cat((self.cv2[i](x[i]), self.cv3[i](x[i])), 1)
+                for i in range(self.nl)]
+
+    detect.forward = types.MethodType(_raw_head, detect)
+
     det.eval()
     return det
 
