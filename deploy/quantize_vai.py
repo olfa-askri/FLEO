@@ -25,7 +25,15 @@ Usage (in the Vitis AI docker):
 from __future__ import annotations
 
 import argparse
+import os
+import sys
 from pathlib import Path
+
+# Make the repo root importable so `fleo` / `scripts` resolve regardless of the
+# directory this script is launched from (e.g. `python deploy/quantize_vai.py`).
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
 
 import torch
 
