@@ -54,7 +54,12 @@ single-label corpus this degenerates to n_c = 𝟙[c = y], so Equation (2) reduc
 additively-smoothed soft target μ_c = (𝟙[c=y] + α·π_c)/(1 + α), computed
 deterministically from the ground-truth label, the smoothing strength α, and the prior
 π. The construction is therefore fully reproducible from a single label and does not
-require annotator votes.
+require annotator votes. The motivation for softening an otherwise one-hot target is
+that facial expressions are intrinsically ambiguous — confusable pairs such as
+fear/disgust and happy/surprise share facial action units, and even human annotators
+disagree — so a hard one-hot target overstates confidence, whereas the smoothed target
+better reflects this uncertainty and improves calibration and generalization, in line
+with label smoothing (Szegedy et al., 2016).
 
 **Author Action:** We have revised Section 3.1.1 to state explicitly that the
 benchmarks are single-label and that Equation (2) reduces to smoothed soft targets, and
