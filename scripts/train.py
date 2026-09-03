@@ -48,6 +48,7 @@ def train_fleo(args, seed: int):
         k=args.k, d=args.d, mode="full",
         lambda_ortho=args.lambda_ortho, lambda_bind=args.lambda_bind,
         pretrained=args.pretrained, dropout=args.fleo_dropout,
+        fuzzy_alpha=args.fuzzy_alpha,
     )
     overrides = dict(
         model=args.cfg, data=args.data, epochs=args.epochs, imgsz=args.imgsz,
@@ -127,6 +128,9 @@ def main():
     ap.add_argument("--lambda-bind", type=float, default=0.01)
     ap.add_argument("--fleo-dropout", type=float, default=0.15,
                     help="channel dropout inside FLEO to curb over-fitting")
+    ap.add_argument("--fuzzy-alpha", type=float, default=0.0,
+                    help="Eq.(2) fuzzy-label smoothing strength (0 = hard labels; "
+                         "e.g. 0.1). Uniform prior pi by default.")
     args = ap.parse_args()
 
     # Absolute project path so ultralytics saves exactly to <project>/<name>

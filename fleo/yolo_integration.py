@@ -33,6 +33,19 @@ class FLEODetectionModel(DetectionModel):
 
     lambda_ortho = 0.01
     lambda_bind = 0.01
+    # Fuzzy-label supervision (Eq. 2). alpha=0 -> standard hard-label loss (default,
+    # unchanged behaviour). Set fuzzy_alpha>0 (and optionally fuzzy_prior, a length-nc
+    # list) to train against the smoothed soft targets mu.
+    fuzzy_alpha = 0.0
+    fuzzy_prior = None
+
+    def init_criterion(self):
+        if getattr(self, "fuzzy_alpha", 0.0) and self.fuzzy_alpha > 0:
+            from .fuzzy_loss import FuzzyDetectionLoss
+            return FuzzyDetectionLoss(
+                self, alpha=self.fuzzy_alpha, pi=getattr(self, "fuzzy_prior", None)
+            )
+        return super().init_criterion()
 
     def loss(self, batch, preds=None):
         total, items = super().loss(batch, preds)
@@ -130,11 +143,15 @@ def build_fleo_detection_model(
     lambda_ortho: float = 0.05,
     lambda_bind: float = 0.01,
     dropout: float = 0.0,
+    fuzzy_alpha: float = 0.0,
+    fuzzy_prior=None,
 ):
     """Build a DetectionModel with the Detect head at ``nc`` and FLEO at P3/P4."""
     det = FLEODetectionModel(cfg, ch=3, nc=nc, verbose=False)
     det.lambda_ortho = lambda_ortho
     det.lambda_bind = lambda_bind
+    det.fuzzy_alpha = fuzzy_alpha
+    det.fuzzy_prior = fuzzy_prior
     det.names = {i: f"emotion_{i}" for i in range(nc)}
     wrap_fleo(det, nc=nc, k=k, d=d, mode=mode, imgsz=imgsz, dropout=dropout)
     return det
@@ -222,7 +239,8 @@ def set_route(model, mode: str):
 
 def make_fleo_trainer(k: int = 7, d: int = 8, mode: str = "full",
                       lambda_ortho: float = 0.05, lambda_bind: float = 0.01,
-                      pretrained: str | None = None, dropout: float = 0.0):
+                      pretrained: str | None = None, dropout: float = 0.0,
+                      fuzzy_alpha: float = 0.0, fuzzy_prior=None):
     """Return a DetectionTrainer subclass whose ``get_model`` yields a FLEO detector.
 
     Using a custom trainer is the robust way to keep FLEO through ``train()``:
@@ -242,6 +260,7 @@ def make_fleo_trainer(k: int = 7, d: int = 8, mode: str = "full",
             det = build_fleo_detection_model(
                 cfg or "yolo12s.yaml", nc=nc, k=k, d=d, mode=mode,
                 lambda_ortho=lambda_ortho, lambda_bind=lambda_bind, dropout=dropout,
+                fuzzy_alpha=fuzzy_alpha, fuzzy_prior=fuzzy_prior,
             )
             # ultralytics-supplied resume weights take precedence over COCO warm-start.
             load_pretrained_into(det, weights if weights is not None else pretrained)
