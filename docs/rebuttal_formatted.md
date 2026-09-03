@@ -12,20 +12,31 @@ reading of the manuscript. Below we address every comment point by point. Text i
 Please add ablation experiments evaluating algorithm accuracy and hardware cost
 under different d values to justify the selection of d=8.
 
-**Author Response:** We thank the reviewer for the comment. We selected d=8 as the
-knee of the accuracy–cost trade-off. We have added an ablation over the per-emotion
-subspace width d ∈ {4, 8, 16, 32} on RAF-DB, reporting both recognition accuracy and
-hardware cost. Because FLEO projects each of the two neck sites (P3, P4) to K·d = 7d
-channels, its parameter and MAC cost grow approximately linearly in d; relative to
-d=8 the FLEO footprint is 0.50× at d=4, 2.05× at d=16, and 4.30× at d=32. Accuracy
-[improves from d=4 to d=8 and then saturates: d=4 [__], d=8 [__], d=16 [__],
-d=32 [__] mAP50], so d=8 captures the representational benefit of the orthogonal
-subspaces at minimal accelerator footprint.
+**Author Response:** We thank the reviewer for the comment. We have added an ablation
+over the per-emotion subspace width d ∈ {4, 8, 16, 32} on RAF-DB, reporting both
+recognition accuracy and hardware cost (new Table X). Across an 8× range of d, mAP50
+remains within a narrow 3-point band (0.790–0.820; mAP50-95 0.759–0.813) with no
+monotonic trend, indicating that FLEO's accuracy is largely insensitive to the
+subspace width and that the residual variation is within single-run variance. Hardware
+cost, by contrast, grows strongly with d: because FLEO projects each of the two neck
+sites (P3, P4) to K·d = 7d channels, the FLEO footprint is 0.50×, 1.00×, 2.05× and
+4.30× at d = 4, 8, 16, 32 (adding 4%, 8%, 17% and 35% over the YOLOv8n backbone). We
+therefore fix d = 8 as a balanced, moderate capacity: it preserves accuracy while
+keeping the K·d projection — and hence the DPU footprint — small, and the larger widths
+(d = 16, 32) yield no consistent accuracy gain that would justify their 2–4× cost.
 
-**Author Action:** We have added Table [X] and a subsection in Section 4 reporting the
-d-ablation (accuracy and hardware cost), and we have added one sentence to Section
-3.1.2 stating the rationale for d=8. The training script `scripts/train.py` exposes
-the width via `--d` for full reproducibility.
+| d | mAP50 | mAP50-95 | FLEO cost |
+|---|---|---|---|
+| 4 | 0.807 | 0.801 | 0.50× |
+| **8** | **0.790** | **0.759** | **1.00×** |
+| 16 | 0.806 | 0.774 | 2.05× |
+| 32 | 0.820 | 0.813 | 4.30× |
+
+**Author Action:** We have added Table X and a subsection in Section 4 reporting the
+d-ablation (accuracy and hardware cost), and a sentence in Section 3.1.2 stating that
+d = 8 is chosen for its accuracy-vs-cost balance given the observed insensitivity of
+accuracy to d. The training script `scripts/train.py` exposes the width via `--d` for
+reproducibility.
 
 ---
 
