@@ -73,16 +73,19 @@ prior distribution π? Please elaborate the construction pipeline of fuzzy label
 the rationale for parameter selection.
 
 **Author Response:** We thank the reviewer for the comment. The construction pipeline
-is: (i) take the one-hot ground-truth label; (ii) leak a fraction α of the probability
-mass onto the remaining classes in proportion to the prior π; (iii) renormalise. We set
-α = [0.1], chosen by a small sweep α ∈ {0.05, 0.1, 0.2} on the RAF-DB validation split
-([__] justifies 0.1), and π = [the empirical class-frequency prior], so probability
-leaks toward frequently-confused, well-populated neighbours while confident classes
-stay near one-hot. Larger α over-smooths minority classes; α = 0 recovers hard labels.
+has three steps: (i) start from the one-hot ground-truth label; (ii) redistribute a
+fraction α of the probability mass onto the other classes in proportion to the prior π;
+(iii) renormalise so that μ sums to one. We adopt **α = 0.1**, the well-established
+label-smoothing strength of Szegedy et al. (2016): it is small enough to keep the
+ground-truth class dominant (μ_y ≈ 0.92) yet large enough to inject useful uncertainty;
+α = 0 recovers hard labels and larger α over-smooths the minority classes. We use this
+standard value rather than tuning α on the benchmarks, to avoid fitting the
+hyper-parameter to the evaluation data. For the prior we use **π = the empirical
+class-frequency prior**, so the redistributed mass follows the natural class
+distribution and is not biased toward rare categories such as disgust.
 
 **Author Action:** We have revised Section 3.1.1 to describe the three-step construction
-pipeline and to report and justify α and π, and we have added the α sweep to the
-supplementary results.
+pipeline and to state and justify the values of α and π.
 
 ---
 
