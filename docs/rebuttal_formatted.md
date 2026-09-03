@@ -20,7 +20,9 @@ monotonic trend, indicating that FLEO's accuracy is largely insensitive to the
 subspace width and that the residual variation is within single-run variance. Hardware
 cost, by contrast, grows strongly with d: because FLEO projects each of the two neck
 sites (P3, P4) to K·d = 7d channels, the FLEO footprint is 0.50×, 1.00×, 2.05× and
-4.30× at d = 4, 8, 16, 32 (adding 4%, 8%, 17% and 35% over the YOLOv8n backbone). We
+4.30× at d = 4, 8, 16, 32 (adding 4%, 8%, 17% and 35% over the YOLOv8n backbone).
+Concretely, each site adds about 11·c1·(7d) + (7d)² parameters, so the FLEO cost scales
+roughly linearly with d. We
 therefore fix d = 8 as a balanced, moderate capacity: it preserves accuracy while
 keeping the K·d projection — and hence the DPU footprint — small, and the larger widths
 (d = 16, 32) yield no consistent accuracy gain that would justify their 2–4× cost.
