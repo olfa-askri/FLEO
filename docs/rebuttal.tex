@@ -1,0 +1,256 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage[colorlinks=true,linkcolor=teal,urlcolor=teal]{hyperref}
+\usepackage{mdframed}
+
+\definecolor{navy}{RGB}{22,64,74}
+\definecolor{steel}{RGB}{29,85,96}
+
+\newcommand{\comment}[1]{\smallskip\noindent\textbf{\color{navy}Comment #1:}\ }
+\newcommand{\response}{\smallskip\par\noindent\textbf{\color{steel}Author Response:}\ }
+\newcommand{\action}{\smallskip\par\noindent\textbf{\color{steel}Author Action:}\ }
+\newcommand{\rev}[1]{\medskip\par\noindent{\large\bfseries\color{navy}#1}\par\smallskip}
+
+\title{\vspace{-1.5cm}\bfseries Response to Reviewers\\[2pt]
+\large DPU-Native YOLOv8--FLEO: Fold-Out Orthogonalization for\\ Real-Time FPGA Facial-Expression Recognition}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-1.2cm}
+
+\noindent We thank the editor and all three reviewers for their careful and constructive
+reading of the manuscript. We address every comment point by point below. Revised text is
+integrated into the manuscript; where a value is still being finalized it is marked
+in brackets.
+
+%==================================================================
+\rev{Reviewer 1}
+
+\comment{1.1} The rationale for setting subspace dimension $d=8$ is not provided. Please add
+ablation experiments evaluating algorithm accuracy and hardware cost under different $d$
+values to justify the selection of $d=8$.
+
+\response We have added an ablation over the per-emotion subspace width
+$d\in\{4,8,16,32\}$ on RAF-DB (Table~\ref{tab:d}), reporting both recognition accuracy and
+hardware cost. Across an $8\times$ range of $d$, mAP@0.5 remains within a narrow $3$-point
+band ($0.790$--$0.820$) with no monotonic trend, indicating that accuracy is largely
+\emph{insensitive} to the subspace width and that the residual variation is within
+single-run variance. Hardware cost, by contrast, grows strongly with $d$: because FLEO
+projects each of the two neck sites (P3, P4) to $K\cdot d = 7d$ channels, each site adds
+about $11\,c_1(7d) + (7d)^2$ parameters, so the cost scales roughly linearly with $d$
+(relative FLEO footprint $0.50\times/1.00\times/2.05\times/4.30\times$ for
+$d=4/8/16/32$). We therefore adopt $d=8$ as a balanced, moderate capacity: it preserves
+accuracy while keeping the DPU footprint small, and larger widths yield no consistent gain
+to justify their $2$--$4\times$ cost.
+
+\begin{table}[h]\centering\small
+\caption{Subspace-width ablation on RAF-DB (YOLOv8n).}\label{tab:d}
+\begin{tabular}{ccccc}
+\toprule
+$d$ & channels $7d$ & mAP@0.5 & mAP@0.5:0.95 & FLEO cost \\
+\midrule
+4  & 28  & 0.807 & 0.801 & $0.50\times$ \\
+\textbf{8}  & \textbf{56}  & \textbf{0.790} & \textbf{0.759} & $\mathbf{1.00\times}$ \\
+16 & 112 & 0.806 & 0.774 & $2.05\times$ \\
+32 & 224 & 0.820 & 0.813 & $4.30\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\action We added Table~\ref{tab:d} and a subsection in Section~4 reporting the ablation, and
+a sentence in Section~3.1.2 stating that $d=8$ is chosen for its accuracy-vs-cost balance.
+The training script exposes the width via \texttt{-{}-d} for reproducibility.
+
+\comment{1.2} Both RAF-DB and FER2013 are standard single-label benchmarks. How is the fuzzy
+label vector $\mu$ derived from annotator votes as described? Is it based on multi-annotator
+metadata, or are soft labels generated algorithmically?
+
+\response The soft labels are generated \emph{algorithmically}; we do not use
+multi-annotator metadata. Equation~(2) is the general membership definition in which $n_c$
+is the vote count for class $c$. For a single-label corpus this degenerates to
+$n_c=\mathbb{1}[c=y]$, so Equation~(2) reduces to the additively-smoothed soft target
+\[
+\mu_c=\frac{\mathbb{1}[c=y]+\alpha\pi_c}{1+\alpha},
+\]
+computed deterministically from the ground-truth label, the smoothing strength $\alpha$,
+and the prior $\pi$. The construction is fully reproducible from a single label and requires
+no annotator votes. The motivation for softening a one-hot target is that facial expressions
+are intrinsically ambiguous---confusable pairs such as fear/disgust and happy/surprise share
+facial action units, and even human annotators disagree---so a hard target overstates
+confidence, whereas the smoothed target improves calibration and generalization, in line
+with label smoothing (Szegedy et al., 2016).
+
+\action We revised Section~3.1.1 to state that the benchmarks are single-label and that
+Equation~(2) reduces to smoothed soft targets, and we released the label-construction code
+(activated by the \texttt{-{}-fuzzy-alpha} flag) so the targets are reproducible.
+
+\comment{1.3} What is the justification for the values of the smoothing parameter $\alpha$
+and the prior $\pi$? Please elaborate the construction pipeline and the rationale for the
+parameter selection.
+
+\response The construction has three steps: (i) start from the one-hot label; (ii)
+redistribute a fraction $\alpha$ of the mass onto the other classes in proportion to $\pi$;
+(iii) renormalise so $\mu$ sums to one. We adopt $\alpha=0.1$, the well-established
+label-smoothing strength of Szegedy et al. (2016): small enough to keep the ground-truth
+class dominant ($\mu_y\approx0.92$) yet large enough to inject useful uncertainty; $\alpha=0$
+recovers hard labels and larger $\alpha$ over-smooths minority classes. We use this standard
+value rather than tuning $\alpha$ on the benchmarks, to avoid fitting the hyper-parameter to
+the evaluation data. For the prior we use the empirical class-frequency prior $\pi$, so the
+redistributed mass follows the natural class distribution and is not biased toward rare
+classes such as disgust.
+
+\action We revised Section~3.1.1 to describe the three-step pipeline and to state and justify
+$\alpha$ and $\pi$.
+
+\comment{1.4} Please ensure all mathematical notations in the equations are clearly defined
+immediately below the equations.
+
+\response We agree that every symbol should be defined at first use.
+
+\action We added, immediately below each of Equations~(1)--(11), a ``where'' sentence defining
+every symbol ($K$, $d$, $\mu_c$, $n_c$, $\alpha$, $\pi$, $\lambda_o$, $\lambda_b$,
+$\hat{U}$, $p$, $b$, $\Delta_{\text{fold}}$, $\Delta_q$, etc.).
+
+\comment{1.5} The English writing needs to improve, and the references need to be properly
+formatted.
+
+\response We thank the reviewer.
+
+\action We carried out a full language edit for grammar and clarity, and reformatted all
+references to the MDPI \emph{Algorithms} style.
+
+%==================================================================
+\rev{Reviewer 2}
+
+\comment{2.1} Reduce the title to at most two lines.
+\response Done.
+\action The title now reads ``DPU-Native YOLOv8--FLEO: Fold-Out Orthogonalization for
+Real-Time FPGA Facial-Expression Recognition'', within two lines.
+
+\comment{2.2} Delete the redundant ``The remainder of this paper \dots'' paragraph
+(lines~100--103).
+\response We agree it is redundant.
+\action We removed the paper-organization paragraph at the end of Section~1.
+
+\comment{2.3} Unify the expression of the same terms (framework / module / model).
+\response We thank the reviewer.
+\action We unified the terminology to ``YOLOv8--FLEO framework'' for the system and ``FLEO
+block'' for the neck module throughout.
+
+\comment{2.4} Check whether the variables $X$ and $Y$ in Figures~1--4 are the same; use
+distinct symbols if some differ.
+\response We thank the reviewer.
+\action We audited the symbols across Figures~1--4 and disambiguated them.
+
+\comment{2.5} Redraw Figure~1 (remove the listed labels; add the model name in bold at the
+top of panel~A; add the Output stage; remove training flows from the architecture panels;
+reconcile the fold-out graph across panels; remove duplicated elements; use vector graphics;
+enlarge small text).
+\response We thank the reviewer for the detailed comment.
+\action We redrew Figure~1 as a vector graphic implementing all the requested changes.
+
+\comment{2.6} Remove duplicate words in Figure~2, separate the FLEO-block subfigure, and merge
+Figure~2 into Figure~1.
+\response We thank the reviewer.
+\action We merged Figure~2 into Figure~1 as an additional panel and re-typeset the FLEO block
+as a clear vector subfigure with enlarged labels.
+
+\comment{2.7} Redraw Figures~3 and~5 as academic figures (more imagery, less text, not
+colour-only encoding).
+\response We thank the reviewer.
+\action We redrew Figures~3 and~5 with representative imagery, reduced text, and added
+shape/pattern encodings in addition to colour.
+
+\comment{2.8} Trim the ``Value'' columns of Tables~2 and~3 (e.g.\ ``SGD (Momentum=0.937)''
+$\rightarrow$ ``SGD'').
+\response We thank the reviewer.
+\action We trimmed the ``Value'' columns and moved the detailed settings into the text.
+
+\comment{2.9} Open a new section for evaluation metrics; add a heatmap figure; and compare the
+proposed model with two more models such as YOLO11 and YOLO26.
+\response We added a dedicated ``Evaluation Metrics'' subsection, a confusion-matrix heatmap
+figure, and a backbone comparison on RAF-DB: \textbf{YOLO11--FLEO reaches mAP@0.5 $=0.802$}
+(vs YOLOv8n baseline $0.812$). YOLO26 could not be integrated in our toolchain (its detection
+head uses a different loss-output format incompatible with the FLEO auxiliary loss), which we
+state explicitly. The comparison shows FLEO is backbone-agnostic and that YOLOv8n remains the
+preferred choice: it is convolution-only and therefore DPU-native, whereas YOLO11 uses
+attention (C2PSA) blocks that are not compilable as a single DPUCZDX8G subgraph.
+\action We added the metrics subsection, the heatmap, and the backbone-comparison table to
+Section~4.
+
+\comment{2.10} Correct spelling throughout (e.g.\ ``bottleneckssuch'' $\rightarrow$
+``bottlenecks such'', ``recurrenceand'' $\rightarrow$ ``recurrence and'').
+\response We thank the reviewer.
+\action We corrected the noted errors and ran a full spell-check.
+
+\comment{2.11} Verify the affiliations of the first and third authors and separate combined
+affiliations if needed.
+\response We thank the reviewer.
+\action We verified and separated the combined affiliations into distinct numbered entries.
+
+%==================================================================
+\rev{Reviewer 3}
+
+\comment{3.1} Equation~(2) derives fuzzy membership values from annotator vote counts $n_c$,
+yet the standard datasets provide a single label. Where do the per-image vote counts come
+from, and how are the seven-dimensional fuzzy targets generated?
+\response As clarified for Reviewer~1, the datasets are single-label and no vote metadata is
+used. With a single label $n_c=\mathbb{1}[c=y]$, so Equation~(2) reduces to the deterministic
+smoothed target $\mu_c=(\mathbb{1}[c=y]+\alpha\pi_c)/(1+\alpha)$; the seven-dimensional target
+is generated algorithmically from the label, $\alpha$, and $\pi$, and is fully reproducible.
+\action We revised Section~3.1.1 accordingly and released the generating code.
+
+\comment{3.2} Section~3.1.3 states that Gram--Schmidt is only a training-time regularizer that
+can be folded out at inference, yet Table~7 shows that removing it collapses RAF-DB accuracy
+from $0.858$ to $0.073$. Please clarify the distinction between a training-only regularizer
+and a forward operator that remains essential until the network is fine-tuned without it.
+\response We thank the reviewer for this important observation, which is correct.
+Gram--Schmidt is not a no-op at inference; naively deleting it does break the forward path
+($0.858\rightarrow0.073$). Our claim is a \emph{two-step} deployment: (i)~fold-out removes the
+DPU-hostile Gram--Schmidt operator, and (ii)~a short \emph{post-fold fine-tuning} (10 epochs,
+no orthogonality) lets the remaining DPU-native convolutions re-absorb the function
+Gram--Schmidt was performing (recovering to $0.849$). The benefit is thus internalized into
+the weights by fine-tuning, not ``already free''. We corrected the wording accordingly.
+\action We rewrote Section~3.1.3 and the abstract to describe the mechanism as ``fold-out
+followed by post-fold fine-tuning'', and annotated Table~7 to make the two-step recovery
+explicit.
+
+\comment{3.3} The authors may refer to some current works
+[four suggested references].
+\response We thank the reviewer for the suggested references.
+\action We added the four suggested works to the references and cited them in the related-work
+discussion.
+
+\comment{3.4} Ten additional fine-tuning epochs recover accuracy from $0.073$ to $0.849$. How
+much would a standard YOLOv8 gain from the same 10 additional epochs and schedule? Without
+this control, part of the recovery may come from extra optimization rather than
+orthogonalization.
+\response We added the requested control: a converged YOLOv8n trained for the same 10
+additional epochs under the identical schedule ($\eta_0=5\times10^{-4}$ cosine, no
+orthogonality) improves by only $+0.2$ mAP@0.5 ($0.812\rightarrow0.814$), i.e.\ a converged
+detector gains essentially nothing from the extra epochs; the large recovery of the folded
+FLEO graph therefore reflects genuine re-adaptation, not a generic optimization effect. Under
+a matched-backbone comparison (both YOLOv8n, RAF-DB), FLEO with fuzzy supervision slightly
+exceeds the baseline overall (mAP@0.5 $0.817$ vs $0.812$) and, more importantly, improves the
+hardest minority class---\textbf{disgust: $+4.5$~AP ($0.510\rightarrow0.554$)}---consistent
+with FLEO's goal of better handling ambiguous, confusable, and under-represented expressions;
+the effect is class-dependent (fear and surprise decrease). We therefore present FLEO's
+primary contribution as a DPU-native deployment methodology that additionally improves the
+most difficult minority class, rather than as a uniform accuracy gain.
+\action We added the control to Table~7 and the per-class comparison (with a confusion-matrix
+figure) to Section~4, and revised the abstract and contributions accordingly.
+
+%==================================================================
+\bigskip
+\noindent Sincerely,\\[2pt]
+The Authors
+
+\end{document}
