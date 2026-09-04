@@ -116,7 +116,7 @@
 
 %=================================================================
 % Full title of the paper (Capitalized)
-\Title{DPU-based YOLOv8-FLEO Accelerator: Fuzzy Label and Emotion Orthogonalization via Subspace-Preserving YOLOv8 and Zero-Fallback FPGA Co-Design for Real-Time Facial Expression Recognition}
+\Title{YOLOv8-FLEO: Fuzzy-Label Emotion Orthogonalization with Zero-Fallback Fold-Out for Real-Time FPGA Facial-Expression Recognition}
 
 % Author Orchid ID: enter ID or remove command
 \newcommand{\orcidauthorA}{0000-0000-0000-000X} % Add \orcidA{} behind the author's name
@@ -135,6 +135,9 @@
 %\longauthorlist{yes}
 
 % Affiliations / Addresses (Add [1] after \address if there is only one affiliation.)
+% [Reviewer 2, Comment 11] Authors 1 and 3 each combine TWO institutions in one entry
+% (the FSM Monastir research lab + a second school). Split them into separate numbered
+% affiliations and update the \author superscripts accordingly.
 \address{%
 $^{1}$ \quad Research Laboratory on Algebra, Theory of Numbers and Intelligent Systems (FSM, Monastir University), National School of Electronics and Telecommunications of Sfax, Sfax University, Sfax 3018, Tunisia; olfa.Askri@esen.tn\\
 $^{2}$ \quad Laboratory of Condensed Matter and Nanoscience (LR11ES40), Department of Physics, Faculty of Sciences of Monastir (FSM), Monastir University, Monastir 5019, Tunisia; seifeddine.messaoud@fsm.rnu.tn\\
@@ -251,6 +254,9 @@ INT8 inference utilizing per-tensor scale factors constitutes the established op
 
 FPGA implementations of facial expression recognition span a decade of diverse architectural explorations. Phan-Xuan \textit{et al.} developed compact CNN classifiers on FPGA fabrics utilizing hand-mapped layer blocks \citep{bib12}, whereas Vinh and Vinh demonstrated SoC-FPGA expression-recognition pipelines integrating face detection and classification on Zynq platforms \citep{bib13}. Targeting the upstream detection stage, Teboulbi \textit{et al.} proposed an FPGA SoC architecture for real-time facial landmark detection leveraging dynamic partial reconfiguration \citep{bib14}. Closest to our implementation, Ando and Inoue deployed a unified face detector and expression classifier on a single DPU with multi-threading support, achieving a 25-FPS standalone system and highlighting that CPU-side control logic, rather than accelerator compute capacity, acts as the primary throughput bottleneck \citep{bib15}. Despite these advancements, a critical research gap remains unaddressed: none of these existing systems confront a network whose core \emph{architecture} embeds an accelerator-hostile operator by design. Integrating complex training-time regularization components directly onto contract-constrained hardware overlays without incurring devastating CPU fallback penalties represents an open challenge that prior literature leaves unmitigated.
 
+% [Reviewer 3, Comment 3] Add the four suggested references to the .bib and cite them here.
+\rev{More broadly, edge-oriented sensing and vision pipelines increasingly co-design signal, hardware, and learning: reconfigurable intelligent surface–assisted mobile communications, near-field metasurface routing, orbital-angular-momentum directional modulation, and modern computer-vision techniques for human analysis all motivate hardware-aware model design~\citep{bib_r3a,bib_r3b,bib_r3c,bib_r3d}.}
+
 \subsection{Structural Reparameterization and Approximate Graph Rewrites}
 
 The concept of training models with complex topological structures that are subsequently collapsed or removed for efficient deployment has gained significant traction in deep learning. The canonical instance of this paradigm is batch-normalization (BN) folding, where affine batch-normalization parameters are algebraically absorbed into the weights of preceding convolutional layers during export—a standard optimization step in nearly all modern accelerator toolchains. Structural reparameterization generalizes this philosophy; for instance, RepVGG \citep{bib16} trains a multi-branch network topology and algebraically collapses it into a single-path $3{\times}3$ convolution for inference, capturing train-time optimization benefits with zero runtime overhead. However, a critical limitation restricts these existing reparameterization techniques: they depend strictly on \emph{exact} algebraic equivalence. Because operations like BN folding and RepVGG multi-branch collapses are exact mathematical identities, they avoid any representation degradation. When facing complex non-linear operators or feature transformation modules (such as Gram--Schmidt orthogonalization) \citep{bibsoftortho}, exact algebraic reduction is impossible. Naive operator excision in such structures causes catastrophic feature misalignment and severe accuracy drops, and existing literature lacks a systematic framework to safely bridge approximate structural removal with hardware acceleration constraints. While recent works have begun exploring ``suppress-then-fine-tune'' concepts as an empirical design principle to manage non-native layers \citep{bib17}, their application to contract-constrained FPGA overlays remains largely unexplored, leaving a critical gap in bridging training-time regularization with hardware-friendly inference.
@@ -331,7 +337,7 @@ To optimize the network under fuzzy supervision, the classification loss $\mathc
 \mathcal{L}_{\text{cls}} = -\sum_{c=1}^{K} \mu_c \log p_c,
 \label{eq:fuzzy_loss}
 \end{equation}
-further supplemented during training by a binding divergence loss $\mathcal{L}_{\text{bind}} = D_{\text{KL}}(\mu \parallel \sigma(b))$ to align subspace representations with graded membership targets.
+\rev{where \mbox{$\mu_c$} is the fuzzy target and \mbox{$p_c$} the predicted posterior for class~\mbox{$c$}.} This is further supplemented during training by a binding divergence loss $\mathcal{L}_{\text{bind}} = D_{\text{KL}}(\mu \parallel \sigma(b))$ to align subspace representations with graded membership targets.
 
 %%%%revised%%%%%
 \subsubsection{Emotion-Orthogonalized Subspaces}
@@ -552,7 +558,7 @@ Hyperparameter & Value \\
 Detector Architecture & YOLOv8s (7-class, detection-cast FER) \\
 Input Resolution & $256\times256$ pixels (letterboxed) \\
 Initialization & COCO Pre-trained Weights \\
-Optimizer & SGD (Momentum = $0.937$) \\
+Optimizer & SGD \\
 Base Learning Rate & $\mathrm{lr_0} = 0.01$ with Cosine Decay \\
 Weight Decay & $8\times10^{-4}$ \\
 Batch Size & $64$ \\
