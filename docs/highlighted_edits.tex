@@ -1,0 +1,89 @@
+% =====================================================================
+%  READY-TO-PASTE HIGHLIGHTED EDITS  (fluo yellow = revised text)
+%  1) Paste the PREAMBLE block into your manuscript before \begin{document}
+%  2) For each point below, paste the \rev{...} text at the indicated place
+% =====================================================================
+
+% ---------- PREAMBLE (paste before \begin{document}) ----------
+\usepackage{soul}
+\usepackage{xcolor}
+\usepackage{amssymb}
+\definecolor{fluo}{RGB}{255,255,0}     % jaune fluo
+\sethlcolor{fluo}
+\newcommand{\rev}[1]{\hl{#1}}          % \rev{...} = surligne
+% --------------------------------------------------------------
+
+
+% ===== Point 1.2 / 1.3 / 3.1 — Section 3.1.1 (p.8), JUST AFTER Eq.(2) =====
+\rev{Both RAF-DB and FER2013 provide a single label per image; we use no
+multi-annotator metadata. Equation~(2) is the general membership definition in
+which \mbox{$n_c$} is the vote count for class~\mbox{$c$}. For a single-label
+corpus \mbox{$n_c=\mathbb{1}[c=y]$}, so Equation~(2) reduces to the
+additively-smoothed soft target \mbox{$\mu_c=(\mathbb{1}[c=y]+\alpha\pi_c)/(1+\alpha)$},
+generated algorithmically from the ground-truth label, the smoothing strength
+\mbox{$\alpha$}, and the prior \mbox{$\pi$}, with no annotator votes. We set
+\mbox{$\alpha=0.1$} (the standard label-smoothing value) and take \mbox{$\pi$} as
+the empirical class-frequency prior. Softening the one-hot target reflects the
+intrinsic ambiguity of facial expressions (confusable pairs such as fear/disgust
+share action units) and improves calibration.}
+
+
+% ===== Point 1.4 — Notation, UNDER Eq.(2) (p.8) [repeat idea under each eq.] =====
+\rev{where \mbox{$\mu_c$} is the fuzzy membership for class \mbox{$c$},
+\mbox{$n_c$} the vote count, \mbox{$\alpha>0$} the smoothing strength,
+\mbox{$\pi$} the prior over the \mbox{$K$} classes.}
+
+
+% ===== Point 3.2 — Abstract (p.1) =====
+\rev{We eliminate the DPU-hostile Gram--Schmidt operator via a fold-out rewrite
+followed by a short post-fold fine-tuning that restores accuracy on the
+DPU-native graph.}
+
+% ===== Point 3.2 — Section 3.1.3 (p.9) [replace the "indispensable regularizer" claim] =====
+\rev{Gram--Schmidt is not a no-op at inference: naively removing it breaks the
+forward path (RAF-DB accuracy \mbox{$0.858\!\to\!0.073$}). Deployment is therefore
+a two-step process---fold-out removes the operator, and a short post-fold
+fine-tuning (10 epochs, no orthogonality) lets the remaining convolutions
+re-absorb its function, recovering to \mbox{$0.849$}. The benefit is internalized
+into the weights by fine-tuning, not free.}
+
+
+% ===== Point 1.1 — Section 4.2.3 (p.20), near the ablation =====
+\rev{We ablate the subspace width \mbox{$d\in\{4,8,16,32\}$} (Table~X): accuracy
+stays within a narrow \mbox{$3$}-point band with no monotonic trend, while the
+FLEO cost grows as \mbox{$0.50/1.0/2.05/4.30\times$}. We adopt \mbox{$d=8$} as the
+accuracy--cost balance.}
+
+
+% ===== Point 3.4 (control) — Section 4.2.3 / Table 7 (p.20) =====
+\rev{As a control, a converged YOLOv8n trained for the same 10 additional epochs
+gains only \mbox{$+0.2$} mAP@0.5 (\mbox{$0.812\!\to\!0.814$}), confirming that the
+folded-graph recovery is genuine re-adaptation, not a generic effect of extra
+optimization.}
+
+
+% ===== Point 3.4 (disgust) — Section 4.2.2 "Emotion Ambiguity" (p.17) =====
+\rev{Under a matched-backbone comparison (both YOLOv8n), FLEO with fuzzy
+supervision slightly exceeds the baseline overall (\mbox{mAP@0.5 $0.817$ vs
+$0.812$}) and, more importantly, improves the hardest minority class---disgust:
+\mbox{$+4.5$~AP} (\mbox{$0.510\!\to\!0.554$})---consistent with FLEO's goal of
+resolving ambiguous, confusable, and under-represented expressions.}
+
+
+% ===== Point 2.9 — Section 4.4 "Comparative Study" (p.26) =====
+\rev{We additionally evaluate YOLO11--FLEO (mAP@0.5 \mbox{$=0.802$}). YOLO26 could
+not be integrated (its detection head uses an incompatible loss-output format).
+YOLOv8n remains preferred: it is convolution-only and thus DPU-native, whereas
+YOLO11's attention (C2PSA) blocks are not compilable as a single DPU subgraph.}
+
+
+% =====================================================================
+%  COSMETIC FIXES (no highlight needed — just replace)
+% =====================================================================
+% 2.1  Title (p.1) -> "DPU-Native YOLOv8-FLEO: Fold-Out Orthogonalization for
+%                      Real-Time FPGA Facial-Expression Recognition"
+% 2.2  p.3 lines 99-103 -> DELETE the "The remainder of this paper ..." paragraph
+% 2.10 p.3 line 85  -> "bottleneckssuch" -> "bottlenecks such"
+%      p.3 line 86  -> "recurrenceand"  -> "recurrence and"
+%      p.3 line 87  -> check "workarounds"
+% 2.11 p.1 -> separate the combined affiliations of authors 1 and 3
