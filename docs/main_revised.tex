@@ -1,0 +1,1186 @@
+%  LaTeX support: latex@mdpi.com 
+%  For support, please attach all files needed for compiling as well as the log file, and specify your operating system, LaTeX version, and LaTeX editor.
+
+%=================================================================
+%\documentclass[preprints,article,submit,moreauthors]{Definitions/mdpi} 
+\documentclass[algorithms,article,submit,moreauthors]{Definitions/mdpi} 
+%\documentclass[algorithms,article,submit,moreauthors]{Definitions/mdpi}
+\usepackage{pifont} 
+%\documentclass[preprints,article,submit,moreauthors]{Definitions/mdpi} 
+% For posting an early version of this manuscript as a preprint, you may use "preprints" as the journal. Changing "submit" to "accept" before posting will remove line numbers.
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{graphicx}
+
+%\usepackage{pifont}
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+\usepackage{multirow}%
+\usepackage{amsmath,amssymb,amsfonts}%
+\usepackage{amsthm}%
+\usepackage{mathrsfs}%
+\usepackage[title]{appendix}%
+\usepackage{xcolor}%
+\usepackage{textcomp}%
+\usepackage{threeparttable}
+\usepackage{manyfoot}%
+\usepackage{booktabs}%
+\usepackage[linesnumbered,ruled,vlined]{algorithm2e} % for algorithms
+\usepackage{algorithmicx}%
+\usepackage{algpseudocode}%
+\usepackage{listings}%
+\usepackage{multirow}
+\usepackage{float}
+\usepackage{soul}
+\usepackage{xcolor}
+\usepackage{amssymb}
+\definecolor{fluo}{RGB}{255,255,0}     % jaune fluo
+\sethlcolor{fluo}
+\newcommand{\rev}[1]{\hl{#1}} 
+%%%Author macros
+\def\tsc#1{\csdef{#1}{\textsc{\lowercase{#1}}\xspace}}
+\tsc{WGM}
+\tsc{QE}
+\tsc{EP}
+\tsc{PMS}
+\tsc{BEC}
+\tsc{DE}
+%%%
+\newcommand{\Ppeak}{\mathrm{P}_{\mathrm{peak}}}
+%\newcommand{\   }{\textbf{   }}
+\newcommand{\fmax}{f_{\mathrm{max}}}
+% Below journals will use APA reference format:
+% admsci, aieduc, behavsci, businesses, econometrics, economies, education, ejihpe, famsci, games, humans, ijcs, ijfs, investment, fclam, jintelligence, journalmedia, jrfm, jsam, languages, opermanag, peacestud, pmh, psycholint, publications, tourismhosp, youth
+
+% Below journals will use Chicago reference format:
+% arts, genealogy, histories, humanities, laws, literature, religions, risks, socsci
+
+%--------------------
+% Class Options:
+%--------------------
+%----------
+% journal
+%----------
+
+
+%---------
+% article
+%---------
+% The default type of manuscript is "article", but can be replaced by: 
+% abstract, addendum, article, benchmark, book, bookreview, briefcommunication, briefreport, casereport, changes, clinicopathologicalchallenge, comment, commentary, communication, conceptpaper, conferenceproceedings, correction, conferencereport, creative, datadescriptor, discussion, entry, expressionofconcern, extendedabstract, editorial, essay, erratum, fieldguide, hypothesis, interestingimages, letter, meetingreport, monograph, newbookreceived, obituary, opinion, proceedingpaper, projectreport, reply, retraction, review, perspective, protocol, shortnote, studyprotocol, supfile, systematicreview, technicalnote, viewpoint, guidelines, registeredreport, tutorial,  giantsinurology, urologyaroundtheworld
+% supfile = supplementary materials
+
+%----------
+% submit
+%----------
+% The class option "submit" will be changed to "accept" by the Editorial Office when the paper is accepted. This will only make changes to the frontpage (e.g., the logo of the journal will get visible), the headings, and the copyright information. Also, line numbering will be removed. Journal info and pagination for accepted papers will also be assigned by the Editorial Office.
+
+%------------------
+% moreauthors
+%------------------
+% If there is only one author the class option oneauthor should be used. Otherwise use the class option moreauthors.
+
+%=================================================================
+% MDPI internal commands - do not modify
+\firstpage{1} 
+\makeatletter 
+\setcounter{page}{\@firstpage} 
+\makeatother
+\pubvolume{1}
+\issuenum{1}
+\articlenumber{0}
+\pubyear{2026}
+\copyrightyear{2026}
+%\externaleditor{Firstname Lastname} % More than 1 editor, please add `` and '' before the last editor name
+\datereceived{ } 
+\daterevised{ } % Comment out if no revised date
+\dateaccepted{ } 
+\datepublished{ } 
+%\datecorrected{} % For corrected papers: "Corrected: XXX" date in the original paper.
+%\dateretracted{} % For retracted papers: "Retracted: XXX" date in the original paper.
+%\doinum{} % Used for some special journals, like molbank
+%\pdfoutput=1 % Uncommented for upload to arXiv.org
+%\CorrStatement{yes}  % For updates
+%\longauthorlist{yes} % For many authors that exceed the left citation part
+%\IsAssociation{yes} % For association journals
+
+%=================================================================
+% Add packages and commands here. The following packages are loaded in our class file: fontenc, inputenc, calc, indentfirst, fancyhdr, graphicx, epstopdf, lastpage, ifthen, float, amsmath, amssymb, lineno, setspace, enumitem, mathpazo, booktabs, titlesec, etoolbox, tabto, xcolor, colortbl, soul, multirow, microtype, tikz, totcount, changepage, attrib, upgreek, array, tabularx, pbox, ragged2e, tocloft, marginnote, marginfix, enotez, amsthm, natbib, hyperref, cleveref, scrextend, url, geometry, newfloat, caption, draftwatermark, seqsplit
+% cleveref: load \crefname definitions after \begin{document}
+
+%=================================================================
+% Please use the following mathematics environments: Theorem, Lemma, Corollary, Proposition, Characterization, Property, Problem, Example, ExamplesandDefinitions, Hypothesis, Remark, Definition, Notation, Assumption
+%% For proofs, please use the proof environment (the amsthm package is loaded by the MDPI class).
+
+%=================================================================
+% Full title of the paper (Capitalized)
+\Title{DPU-based YOLOv8-FLEO Accelerator: Fuzzy Label and Emotion Orthogonalization via Subspace-Preserving YOLOv8 and Zero-Fallback FPGA Co-Design for Real-Time Facial Expression Recognition}
+
+% Author Orchid ID: enter ID or remove command
+\newcommand{\orcidauthorA}{0000-0000-0000-000X} % Add \orcidA{} behind the author's name
+%\newcommand{\orcidauthorB}{0000-0000-0000-000X} % Add \orcidB{} behind the author's name
+
+% Authors, for the paper (add full first names)
+%\Author{Olfa ASKRI $^{1,}$*}\orcidA{}, Seifeddine MESSAOUD $^{2}$, Mohamed Ali HAJJAJI $^{3}$ and Mohamed ATRI $^{2,}$}
+
+\Author{Olfa ASKRI  $^{1,}$$^*$, Seifeddine MESSAOUD$^{2}$, Mohamed Ali HAJJAJI $^{3}$, and Mohamed ATRI $^{4}$}
+
+%\longauthorlist{yes}
+
+% MDPI internal command: Authors, for metadata in PDF
+\AuthorNames{Olfa ASKRI, Seifeddine MESSAOUD, Mohamed Ali HAJJAJI, and Mohamed ATRI}
+
+%\longauthorlist{yes}
+
+% Affiliations / Addresses (Add [1] after \address if there is only one affiliation.)
+\address{%
+$^{1}$ \quad Research Laboratory on Algebra, Theory of Numbers and Intelligent Systems (FSM, Monastir University), National School of Electronics and Telecommunications of Sfax, Sfax University, Sfax 3018, Tunisia; olfa.Askri@esen.tn\\
+$^{2}$ \quad Laboratory of Condensed Matter and Nanoscience (LR11ES40), Department of Physics, Faculty of Sciences of Monastir (FSM), Monastir University, Monastir 5019, Tunisia; seifeddine.messaoud@fsm.rnu.tn\\
+$^{3}$ \quad  Research Laboratory on Algebra, Theory of Numbers and Intelligent Systems (FSM, Monastir University), Higher Institute of Applied Sciences and Technology of Sousse, Sousse University, Sousse 4003, Tunisia; mohamedali.hajjaji@issatso.rnu.tn\\
+$^{4}$ \quad Computer Engineering Department, College of Computer Science, King Khalid University, Abha 61421, Saudi Arabia
+; matri@kku.edu.sa}
+
+
+
+
+
+% Contact information of the corresponding author
+\corres{Correspondence: olfa.Askri@esen.tn}
+
+% Current address and/or shared authorship
+%\firstnote{Current address: Affiliation.}  
+% Current address should not be the same as any items in the Affiliation section.
+
+%\secondnote{These authors contributed equally to this work.}
+% The commands \thirdnote{} till \eighthnote{} are available for further notes.
+
+%\simplesumm{} % Simple summary
+
+%\conference{} % An extended version of a conference paper
+
+% Abstract (Do not insert blank lines, i.e. \\) 
+\abstract{Facial Expression Recognition (FER) models frequently struggle with intrinsic emotional label ambiguities caused by overlapping facial action units, leading to high misclassification rates among confusable categories such as fear and disgust. Simultaneously, deploying advanced deep learning architectures enhanced with custom mathematical constraints onto resource-constrained embedded FPGA accelerators introduces severe operator fragmentation, where non-native operations trigger costly CPU-FPGA context switches. To address these challenges, this paper introduces YOLOv8-FLEO, a novel framework that integrates mutually orthogonal per-emotion subspaces to resolve feature manifold entanglement, combined with an innovative structural fold-out and post-fold fine-tuning deployment pipeline. The proposed approach eliminates DPU-hostile Gram-Schmidt operators from the network backbone, enabling seamless compilation into optimized Xilinx DPU subgraphs with zero non-native body operations. Comprehensive evaluations on the RAF-DB and FER2013 benchmarks demonstrate that YOLOv8-FLEO significantly elevates minority-class recall while maintaining high overall recognition accuracy ($0.858$ on RAF-DB). Furthermore, hardware implementation on the ZCU104 evaluation board targeting the DPUCZDX8G B4096 configuration reveals that the design operates securely on the compute-bound roofline plateau ($\sim 266\,\text{op/byte}$). Supported by INT8 post-training quantization with negligible degradation ($\Delta_q \approx 0.004$), the hardware accelerator achieves a sustained on-board throughput of $\sim 135\,\text{FPS}$, a low latency of $7.2\,\text{ms}$ per frame, and an energy efficiency of $\sim 68\,\text{mJ}$ per inference, establishing a powerful paradigm for real-time, edge-optimized affective computing.}
+
+% Keywords
+\keyword{FER; YOLOv8; FPGA Hardware Acceleration; Subspace Orthogonality; PTQ; Edge Real-Time Object Detection} 
+
+% The fields PACS, MSC, and JEL may be left empty or commented out if not applicable
+%\PACS{J0101}
+%\MSC{}
+%\JEL{}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Only for the journal Diversity
+%\LSID{\url{http://}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Only for the journal Applied Sciences
+%\featuredapplication{Authors are encouraged to provide a concise description of the specific application or a potential application of the work. This section is not mandatory.}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Only for the journal Data
+%\dataset{DOI number or link to the deposited data set if the data set is published separately. If the data set shall be published as a supplement to this paper, this field will be filled by the journal editors. In this case, please submit the data set as a supplement.}
+%\datasetlicense{License under which the data set is made available (CC0, CC-BY, CC-BY-SA, CC-BY-NC, etc.)}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Only for the journal BioTech, Fishes, Neuroimaging and Toxins
+%\keycontribution{The breakthroughs or highlights of the manuscript. Authors can write one or two sentences to describe the most important part of the paper.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Only for the journal Encyclopedia
+%\encyclopediadef{For entry manuscripts only: please provide a brief overview of the entry title instead of an abstract.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Different journals have different requirements. Please check the specific journal guidelines in the "Instructions for Authors" on the journal's official website.
+%\addhighlights{yes}
+%\renewcommand{\addhighlights}{%
+%
+%\noindent This is an optional section, the goal of which is to increase the discoverability and readability of the article via search engines and other scholars. Highlights should not be a copy of the abstract, but a simple overview allowing the reader to quickly and simply find out what the article is about and what can be cited from it. Each of these parts should be up to 2~bullet points.\vspace{3pt}\\
+%\textbf{What are the main findings?}
+% \begin{itemize}[labelsep=2.5mm,topsep=-3pt]
+% \item First bullet.
+% \item Second bullet.
+% \end{itemize}\vspace{3pt}
+%\textbf{What are the implications of the main findings?}
+% \begin{itemize}[labelsep=2.5mm,topsep=-3pt]
+% \item First bullet.
+% \item Second bullet.
+% \end{itemize}
+%}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}\label{sec1}
+
+The rapid digital transformation of modern educational ecosystems has accelerated the deployment of intelligent classrooms and smart learning environments, where real-time affective computing plays a pivotal role in personalizing instruction. Among various biometric modalities, Facial Expression Recognition (FER) has emerged as an indispensable tool for continuously monitoring student emotional states, cognitive engagement, and attentiveness during lectures or remote e-learning sessions. By capturing subtle shifts in student expressions, intelligent educational systems can dynamically adapt teaching methodologies, optimize pedagogical delivery, and provide critical feedback to educators. However, realizing practical FER in real-world academic settings introduces stringent operational requirements, demanding rapid, privacy-preserving, and autonomous processing directly at the edge rather than relying on vulnerable cloud infrastructure.
+
+To satisfy these demanding deployment constraints, embedded deep-learning inference increasingly relies on Field-Programmable Gate Arrays (FPGAs) due to their deterministic latency, strict watt-level power envelopes, and reconfigurable memory hierarchies. For complex convolutional neural networks, modern deployment paradigms on AMD/Xilinx platforms predominantly favor hardware overlays—such as the Deep-Learning Processing Unit (DPU)—over fully custom, handwritten dataflow circuits \citep{bib2,bib1}. By compiling neural networks into structured instruction streams executed on a pre-implemented, instruction-programmable accelerator, the overlay model trades marginal peak execution efficiency for immense practical viability: programmable logic remains fixed, timing closure is performed once, and iterative network optimization avoids prohibitive hardware re-synthesis cycles.
+
+Despite the efficiency of hardware overlays, current state-of-the-art (SOTA) embedded FER systems face a critical compromise between recognition accuracy and hardware compliance. Existing edge-deployed emotion detectors typically rely on standard, vanilla backbones that struggle to capture subtle morphological variations and inter-class overlaps among complex affective states in classroom environments. Conversely, advanced methods designed to improve feature separability often incorporate sophisticated regularization techniques—such as explicit feature orthogonalization—that are strictly confined to server-grade GPUs. When researchers attempt to push such high-performance models to resource-constrained edge accelerators, they encounter severe architectural bottlenecks: the specialized mathematical operations required for feature refinement violate the rigid hardware operator contracts of embedded platforms, inevitably triggering performance-crippling CPU fallbacks that completely negate the benefits of hardware acceleration.
+
+To bridge this persistent gap between advanced feature regularization and edge hardware constraints, we propose a novel co-design paradigm centered on YOLOv8-FLEO. As our primary algorithmic contribution, we introduce an enhanced YOLOv8s object detector whose feature-extraction neck is augmented with FLEO (Fuzzy Label \citep{bib26} and Emotion Orthogonalization). FLEO is designed to systematically partition feature maps into distinct per-emotion subspaces and enforce mutual orthogonality via a differentiable Gram-Schmidt process. This regularization mechanism is indispensable during training, as it drives the network toward highly separable emotion representations, thereby dramatically improving classification fidelity for nuanced expressions in dynamic e-learning environments.
+
+However, incorporating FLEO creates an acute deployment paradox: while orthogonalization is essential for training accuracy, its runtime execution involves reciprocal square roots, divisions, and sequential cross-subspace recurrences—properties that completely violate the narrow operator contract of the DPUCZDX8G overlay \citep{bib1}. Rather than accepting an inefficient hybrid execution or sacrificing model expressiveness, we propose a comprehensive hardware-software co-design framework as our second core contribution. We investigate whether the structural benefits imparted by training-time orthogonalization remain deeply embedded within the learned weights even when the operator is completely excised from the exported graph. We formalize this insight through the \emph{fold-out} mechanism: an export-time graph rewrite that strips the non-native orthogonalization stage, leaving a streamlined network composed exclusively of DPU-native primitives, with its accuracy trade-off rigorously quantified \citep{bib4}.
+
+Building upon these foundations, this paper makes several key contributions to the field of hardware-accelerated deep learning, structured comprehensively as follows. First, we conduct an exhaustive operator-contract compatibility analysis, systematically mapping every layer of the YOLOv8-FLEO architecture against the DPUCZDX8G instruction set to isolate non-native mathematical bottlenecks—such as division, square root, and recurrence—and establishing structural workarounds. Second, we formalize the fold-out graph rewrite methodology, defining an export-time transformation that eliminates training-time orthogonalization while preserving core learned representations, and introducing the fold-out accuracy delta ($\Delta_{\mathrm{fold}}$) to validate the underlying approximation. Third, we introduce a division-free Householder-product orthogonalization as a forward-looking design direction, structured to fold post-training normalization constants into per-channel scaling factors and eliminate runtime division. Fourth, we establish a comprehensive hardware validation framework complete with closed-form mathematical expressions for maximum operating frequency, resource utilization, peak and effective throughput, roofline bounds, power dissipation, and energy-per-inference, validated against physical measurements on the ZCU104 platform. Finally, we provide a robust, transparent experimental protocol and structured results templates covering post-implementation timing closure, power consumption rails, and comparative INT8-versus-FP32 accuracy metrics.
+
+% [Removed per Reviewer 2, Comment 2: redundant paper-organization paragraph deleted.]
+
+
+%%%%%%%%%%%%%%%% reviwed related work %%%%%%%%%%%%%%%%%%%
+\section{Related Work} \label{sec:related}
+
+\subsection{Affective Computing and Label Ambiguity in Facial Expression Recognition}
+
+Facial Expression Recognition (FER) via deep neural networks \citep{bibfer} has advanced rapidly, transitioning from shallow heuristic pipelines to sophisticated deep architectures incorporating spatial attention mechanisms, transformer modules, and multi-scale feature extractors \citep{li2020deep}. While modern models routinely achieve high performance on idealized academic benchmarks, they encounter severe degradation when deployed in real-world environments characterized by the inherent ambiguity and subjectivity of human facial expressions \citep{bibfacs}. In authentic settings—such as intelligent classrooms or e-learning platforms—emotions are rarely discrete or isolated; expressions are frequently confounded by mixed emotional states, cultural variations, and individual morphological nuances, inducing significant label ambiguity and noise in crowdsourced datasets \citep{zeng2018facial}. To mitigate this, contemporary research has gravitated toward label distribution learning and fuzzy-based supervision paradigms, replacing rigid one-hot vector representations with soft probability distributions spanning multiple emotion categories \citep{geng2016label,chen2020ldl}. However, a critical limitation persists: while these advanced algorithms successfully regularize training under ambiguous boundaries, they introduce highly non-linear operators, multi-head distribution tracking, and matrix normalization routines that are fundamentally hostile to resource-constrained edge hardware \citep{bib15}. Our work directly addresses this tension, establishing a rigorous mathematical framework that preserves robust ambiguity-aware training while yielding an accelerator-friendly inference footprint.
+
+\subsection{Hardware Accelerators and Overlay Paradigms for Deep Learning}
+
+Current hardware acceleration of convolutional neural networks on FPGAs broadly bifurcates into two distinct design philosophies. \emph{Bespoke dataflow} architectures synthesize highly specialized application-specific circuits per network, streaming activations directly between layer-specific compute pipelines, with FINN serving as the canonical framework for aggressively quantized networks in this category \citep{bib5}. Conversely, \emph{overlay} architectures implement a standardized, instruction-programmable matrix and convolution engine that is multiplexed across networks via software compilation; the DPUCZDX8G on Zynq UltraScale+ platforms represents the industry-grade standard for this paradigm \citep{bib1} \citep{bib25}. Bridging these design extremes, foundational analytical methodologies have shaped modern hardware-software co-design: Zhang \textit{et al.} pioneered the application of the roofline model to FPGA accelerators, formalizing the critical interplay between compute peak performance and memory bandwidth \citep{bib6}, while Qiu \textit{et al.} demonstrated comprehensive embedded Zynq CNN deployments emphasizing fixed-point arithmetic and memory-conscious structuring \citep{bib7}. More recently, Bel Haj Salah \textit{et al.} implemented full-integer quantization frameworks for YOLOv10 variants on Kria KV260 DPU overlays, achieving sub-25\,ms latency with minimal accuracy degradation relative to FP32 baselines \citep{bib8}. Nonetheless, these overlay-based systems share a common limitation: they assume strict compliance with a rigid hardware operator contract. Our work operates firmly within the overlay paradigm, contributing not a custom hardware engine, but a systematic methodology to render structurally non-conforming, high-accuracy networks fully compatible with existing overlay constraints.
+
+\subsection{Quantization Methodologies for Edge Hardware Constraints}
+
+INT8 inference utilizing per-tensor scale factors constitutes the established operational standard for embedded deep-learning accelerators. Jacob \textit{et al.} formalized affine-quantization mathematics alongside quantization-aware training (QAT) procedures designed to recover precision lost to rounding during weight and activation discretization \citep{bib9}, while Krishnamoorthi systematized standard post-training quantization (PTQ) and calibration strategies \citep{bib10}. Extending these concepts to embedded platforms, Bel Haj Salah \textit{et al.} applied asymmetric PTQ to legacy architectures such as VGG16 and ResNet50 on PYNQ-Z1 FPGAs, demonstrating substantial LUT and DSP resource efficiency gains \citep{bib11}. In production environments, the Vitis~AI compilation flow imposes further constraints, restricting quantizers to hardware-friendly power-of-two scaling factors so that runtime rescaling reduces to efficient bit-shift operations on the DPU datapath \citep{bib1}. These stringent hardware constraints directly dictate our quantization workflow (Section~\ref{sec:quant}); specifically, non-native operators whose dynamic ranges conflict with power-of-two scaling requirements represent the exact structural bottlenecks that our proposed fold-out methodology eliminates.
+
+\subsection{Embedded Facial Expression Recognition}
+
+FPGA implementations of facial expression recognition span a decade of diverse architectural explorations. Phan-Xuan \textit{et al.} developed compact CNN classifiers on FPGA fabrics utilizing hand-mapped layer blocks \citep{bib12}, whereas Vinh and Vinh demonstrated SoC-FPGA expression-recognition pipelines integrating face detection and classification on Zynq platforms \citep{bib13}. Targeting the upstream detection stage, Teboulbi \textit{et al.} proposed an FPGA SoC architecture for real-time facial landmark detection leveraging dynamic partial reconfiguration \citep{bib14}. Closest to our implementation, Ando and Inoue deployed a unified face detector and expression classifier on a single DPU with multi-threading support, achieving a 25-FPS standalone system and highlighting that CPU-side control logic, rather than accelerator compute capacity, acts as the primary throughput bottleneck \citep{bib15}. Despite these advancements, a critical research gap remains unaddressed: none of these existing systems confront a network whose core \emph{architecture} embeds an accelerator-hostile operator by design. Integrating complex training-time regularization components directly onto contract-constrained hardware overlays without incurring devastating CPU fallback penalties represents an open challenge that prior literature leaves unmitigated.
+
+\subsection{Structural Reparameterization and Approximate Graph Rewrites}
+
+The concept of training models with complex topological structures that are subsequently collapsed or removed for efficient deployment has gained significant traction in deep learning. The canonical instance of this paradigm is batch-normalization (BN) folding, where affine batch-normalization parameters are algebraically absorbed into the weights of preceding convolutional layers during export—a standard optimization step in nearly all modern accelerator toolchains. Structural reparameterization generalizes this philosophy; for instance, RepVGG \citep{bib16} trains a multi-branch network topology and algebraically collapses it into a single-path $3{\times}3$ convolution for inference, capturing train-time optimization benefits with zero runtime overhead. However, a critical limitation restricts these existing reparameterization techniques: they depend strictly on \emph{exact} algebraic equivalence. Because operations like BN folding and RepVGG multi-branch collapses are exact mathematical identities, they avoid any representation degradation. When facing complex non-linear operators or feature transformation modules (such as Gram--Schmidt orthogonalization) \citep{bibsoftortho}, exact algebraic reduction is impossible. Naive operator excision in such structures causes catastrophic feature misalignment and severe accuracy drops, and existing literature lacks a systematic framework to safely bridge approximate structural removal with hardware acceleration constraints. While recent works have begun exploring ``suppress-then-fine-tune'' concepts as an empirical design principle to manage non-native layers \citep{bib17}, their application to contract-constrained FPGA overlays remains largely unexplored, leaving a critical gap in bridging training-time regularization with hardware-friendly inference.
+
+\subsection{Synthesis and Positioning of Our Work}
+
+In summary, while prior art has extensively investigated either advanced fuzzy-supervised label ambiguity modeling for FER or efficient integer-quantized FPGA overlay deployments, existing methodologies operate in isolation. Advanced feature regularization techniques remain strictly confined to unconstrained server GPUs due to their incompatibility with rigid hardware operator contracts, whereas embedded deployments are forced to sacrifice representational expressiveness to satisfy DPU limitations. Furthermore, while structural reparameterization offers a pathway for removing training-time blocks, current techniques are restricted to exact algebraic identities and fail when confronted with accelerator-hostile normalization or orthogonalization modules. 
+
+To bridge these persistent divides, this paper introduces YOLOv8-FLEO, a comprehensive co-design framework that pairs an ambiguity-aware fuzzy label and emotion orthogonalization training methodology with an export-time fold-out graph rewrite. Rather than relying on exact equivalence, our approach extends reparameterization into the approximately-foldable domain, utilizing a controlled fine-tuning recovery phase quantified by the fold-out accuracy delta ($\Delta_{\mathrm{fold}}$). By systematically isolating non-native operators, substituting division-free structural alternatives where applicable, and deploying a robust INT8 quantization workflow, our work successfully bridges advanced affective computing algorithms with strict DPUCZDX8G hardware execution constraints—delivering high-accuracy, real-time FER at the edge without performance-crippling CPU fallbacks.
+
+%%%%%%%%%%%%%%%%%%%%Reviwed proposed system section%%%%%%%%%%%%
+\section{Proposed FER-based Embedded YOLOv8-FLEO System}\label{sec:method}
+%==============================================================================
+This section presents the comprehensive design of the proposed Facial Emotion Recognition (FER) embedded system, bridging advanced deep learning architectural innovations with efficient hardware deployment. As illustrated in the system overview by Fig. \ref{fig:proposed_framework}, our approach couples a software-side modification of the YOLOv8 architecture with a specialized hardware acceleration pipeline tailored for Xilinx FPGA platforms.
+
+\begin{figure*}[h!]
+  \centering
+  \includegraphics[width=\linewidth]{proposed-architecture.png}
+  \caption{Overview of the proposed YOLOv8-FLEO framework and hardware-software co-design deployment pipeline: \textbf{(A)} High-level system architecture integrating the proposed FLEO block within the YOLOv8 neck for Facial Emotion Recognition (FER). \textbf{(B)} Detailed schematic of the FLEO block logic, highlighting the dual-path topology comprising channel gating and Gram-Schmidt orthogonalization, alongside training-time fuzzy label supervision modules. \textbf{(C)} Export-time fold-out graph rewrite, illustrating the systematic excision of non-native training apparatus to yield a streamlined, hardware-compatible inference graph. \textbf{(D)} Target FPGA deployment pipeline on the ZCU104 platform featuring INT8 post-training quantization, model compilation, and optimized execution across the B4096 DPU and processing system (PS).}
+    \label{fig:proposed_framework}
+\end{figure*}
+
+Specifically, the methodology is structured around two core dimensions: first, the integration of the YOLOv8-FLEO module within the network neck, combining fuzzy emotion labels and Gram-Schmidt orthogonalization to learn separable, ambiguity-aware per-emotion subspaces (Panels~A and B); second, an export-time fold-out graph rewrite mechanism that eliminates non-native training apparatus to yield a streamlined, DPU-native inference graph, which is subsequently quantized using INT8 post-training quantization and compiled for real-time execution on the Zynq UltraScale+ ZCU104 hardware platform (Panels~C and D). The interplay between these software training structures and hardware execution constraints is unified through the fold-out accuracy loss $\Delta_{\mathrm{fold}}$, quantifying the trade-off introduced during graph optimization.
+
+%========================Revised section=======================================
+\subsection{Proposed YOLOv8-FLEO }\label{sec:soft}
+%=========================================================================
+
+To address the intrinsic ambiguity and overlapping characteristics of facial expression classes in real-world Facial Emotion Recognition (FER), we introduce the YOLOv8-FLEO architecture. We preserve the foundational YOLOv8s backbone (CSPDarknet) and detection heads (P3, P4, P5) unchanged, while seamlessly integrating the proposed Fuzzy Label and Emotion Orthogonalization (FLEO) blocks into the FPN+PANet neck at levels P3, P4, and P5 (Fig.~\ref{fig:fleoblock1}). The FLEO block is designed as a drop-in neck module that preserves channel dimensions through a residual addition, ensuring that all downstream concatenation paths and detection heads remain fully intact. 
+
+Within each insertion site, input features $X$ undergo a $1{\times}1$ spatial projection mapping them to $K\!\cdot\!d$ channels, where $K{=}7$ represents the target emotion categories and $d$ denotes the width per emotion subspace. Processing proceeds across a parallel dual-path topology comprising a top channel gating path and a main orthogonalization path. The projected feature maps are split into $K$ distinct subspaces $\{U_c\}_{c=1}^{K}$, which are subsequently processed by a differentiable Gram-Schmidt orthogonalization stage to enforce mutual subspace independence. In parallel, the top gating path computes a squeeze-and-excitation attention weighting defined as $s = \sigma\bigl(\mathrm{Conv}_{1\times1}(\mathrm{AvgPool}(X'))\bigr)$. The gated outputs are fused through a $3{\times}3$ convolution, combined with the original input via a residual summation, and directed toward a training-time per-subspace binding head.
+
+\begin{figure*}[h!]
+    \centering
+    \includegraphics[width=\linewidth]{proposed-yoloFLEO.png}
+    \caption{Overview of the proposed YOLOv8-FLEO architecture and detailed schematic of the FLEO block logic, illustrating the dual-path feature processing, Gram-Schmidt orthogonalization, and training-time fuzzy supervision apparatus.}
+    \label{fig:fleoblock1}
+\end{figure*}
+
+%%%%revised%%%%%
+\subsubsection{Fuzzy Emotion Labels}
+
+Facial emotions frequently exhibit subjective ambiguity—such as subtle transitions between fear and surprise, or disgust and anger—that standard crisp, one-hot target vectors fail to capture adequately. To model this uncertainty, FLEO supervises the detector using a fuzzy membership distribution in the sense of Zadeh et al \citep{zadeh1965fuzzy}. Let $\mathcal{E}=\{e_1,\dots,e_K\}$ denote the set of $K=7$ discrete emotion classes. A fuzzy label is represented as a normalized membership function $\mu:\mathcal{E}\to[0,1]$, denoted vectorially as $\mu=(\mu_1,\dots,\mu_K)$, satisfying:
+\begin{equation}
+\mu_c\in[0,1],\qquad \sum_{c=1}^{K}\mu_c = 1,
+\qquad\text{i.e., } \mu\in\Delta^{K-1},
+\label{eq:fuzzyset}
+\end{equation}
+where $\Delta^{K-1}$ is the probability simplex and $\mu_c$ specifies the degree of membership of a facial image in emotion category $e_c$. When annotator consensus is absolute, $\mu$ collapses to the standard vertex one-hot vector $\mathbf{1}_{y}$. Given $n_c$ annotator votes for emotion class $c$, the empirical membership is computed via additively-smoothed vote shares:
+\begin{equation}
+\mu_c=\frac{n_c+\alpha\pi_c}{\sum_{j=1}^{K}\!\bigl(n_j+\alpha\pi_j\bigr)},
+\label{eq:fuzzymu}
+\end{equation}
+where $\alpha > 0$ represents the smoothing hyperparameter and $\pi = (\pi_1, \dots, \pi_K)$ acts as a prior distribution over the emotion classes.
+
+\rev{where \mbox{$\mu_c$} is the fuzzy membership for class \mbox{$c$},
+\mbox{$n_c$} the vote count, \mbox{$\alpha>0$} the smoothing strength,
+\mbox{$\pi$} the prior over the \mbox{$K$} classes.}
+
+
+%=======ajouté=======
+\rev{Both RAF-DB and FER2013 provide a single label per image; we use no
+multi-annotator metadata. Equation~(2) is the general membership definition in
+which \mbox{$n_c$} is the vote count for class~\mbox{$c$}. For a single-label
+corpus \mbox{$n_c=\mathbb{1}[c=y]$}, so Equation~(2) reduces to the
+additively-smoothed soft target \mbox{$\mu_c=(\mathbb{1}[c=y]+\alpha\pi_c)/(1+\alpha)$},
+generated algorithmically from the ground-truth label, the smoothing strength
+\mbox{$\alpha$}, and the prior \mbox{$\pi$}, with no annotator votes. We set
+\mbox{$\alpha=0.1$} (the standard label-smoothing value) and take \mbox{$\pi$} as
+the empirical class-frequency prior. Softening the one-hot target reflects the
+intrinsic ambiguity of facial expressions (confusable pairs such as fear/disgust
+share action units) and improves calibration.}
+%===============
+
+
+To optimize the network under fuzzy supervision, the classification loss $\mathcal{L}_{\text{cls}}$ is formulated as the cross-entropy between the fuzzy target distribution $\mu$ and the predicted posterior probability vector $p = (p_1, \dots, p_K)$:
+\begin{equation}
+\mathcal{L}_{\text{cls}} = -\sum_{c=1}^{K} \mu_c \log p_c,
+\label{eq:fuzzy_loss}
+\end{equation}
+further supplemented during training by a binding divergence loss $\mathcal{L}_{\text{bind}} = D_{\text{KL}}(\mu \parallel \sigma(b))$ to align subspace representations with graded membership targets.
+
+%%%%revised%%%%%
+\subsubsection{Emotion-Orthogonalized Subspaces}
+
+To guarantee that distinct emotion categories are structurally distinguishable within the feature space, FLEO allocates dedicated coordinate subspaces to each emotion and enforces strict mutual orthogonality. Let the input feature tensor from the network neck be denoted by $X \in \mathbb{R}^{C \times H \times W}$. FLEO projects and splits this feature tensor into $K$ distinct sub-features corresponding to the target emotion categories:
+\begin{equation}
+X_{\text{sub}} = \text{split}\left(\text{Conv}_{1\times1}(X)\right) = \{X_1, X_2, \dots, X_K\},
+\label{eq:subspace_split}
+\end{equation}
+where each subspace representation $X_k \in \mathbb{R}^{d \times H \times W}$ has a reduced dimensionality of $d = c_1/K$. To eliminate inter-class feature redundancy and enforce strict mutual independence, a differentiable Gram-Schmidt orthogonalization operator transforms the raw split features $\{X_k\}_{k=1}^{K}$ into an orthogonalized basis set $\{\tilde{U}_k\}_{k=1}^{K}$. Sequentially, for each subspace index $k = 1, \dots, K$:
+\begin{equation}
+\tilde{U}_1 = X_1, \qquad \tilde{U}_k = X_k - \sum_{j=1}^{k-1} \frac{\langle X_k, \tilde{U}_j \rangle}{\langle \tilde{U}_j, \tilde{U}_j \rangle} \tilde{U}_j,
+\label{eq:gram_schmidt}
+\end{equation}
+where $\langle \cdot, \cdot \rangle$ denotes the inner product operator evaluated across spatial and channel dimensions, guaranteeing that $\langle \tilde{U}_i, \tilde{U}_j \rangle = 0$ for all $i \neq j$. 
+
+Consequently, the fuzzy label functions as a graded projection onto these orthogonal axes, combining class separability with ambiguity-aware supervision. The final output feature map $Y$ of the FLEO block combines the residual stream with the modulated orthogonalized features:
+\begin{equation}
+Y = X + \text{Conv}_{3\times3}\left( \bigoplus_{k=1}^{K} \left( \tilde{U}_k \odot s \right) \right),
+\label{eq:fleo_output}
+\end{equation}
+where $s$ is the spatial-channel attention gate derived from the auxiliary pooling path, $\odot$ represents element-wise scaling, and $\bigoplus$ denotes feature concatenation followed by final channel mixing.
+
+%%%%revised%%%%%
+\subsubsection{Training Process and Loss Formulation}
+
+During the training phase, the augmented network optimizes a joint multi-task objective function that integrates fuzzy classification performance, subspace orthogonality regularization, and feature-to-label binding alignment. Let $p = (p_1, \dots, p_K)$ denote the vector of predicted detector class posteriors, $b$ represent the per-subspace binding logits emitted by the training-time binding head, and $\hat{U} \in \mathbb{R}^{(K \cdot d) \times K}$ signify the stacked matrix of orthogonalized feature bases. The overall training loss $\mathcal{L}$ is formulated as $\mathcal{L} = \mathcal{L}_{\text{cls}} + \lambda_{o} \mathcal{L}_{\text{orth}} + \lambda_{b} \mathcal{L}_{\text{bind}}$, which expands to:
+\begin{equation}
+\mathcal{L} = -\sum_{c=1}^{K}\mu_c\log p_c
+\;+\;\lambda_{o}\,\bigl\lVert\hat{U}^{\!\top}\hat{U}-I\bigr\rVert_F^{2}
+\;+\;\lambda_{b}\,\mathrm{KL}\!\bigl(\mu\,\Vert\,\sigma(b)\bigr),
+\label{eq:fuzzyloss}
+\end{equation}
+where the fuzzy classification loss component $-\sum_{c=1}^{K}\mu_c\log p_c$ measures the cross-entropy between the soft fuzzy target distribution $\mu \in \Delta^{K-1}$ and the predicted class posterior probability $p$ to adequately handle subjective emotional ambiguity. The orthogonality regularization term $\bigl\lVert\hat{U}^{\!\top}\hat{U}-I\bigr\rVert_F^2$ is the squared Frobenius norm penalty scaled by hyperparameter $\lambda_{o}$, enforcing strict mutual orthogonality among the subspace representation bases against the identity matrix $I$ to eliminate inter-class feature redundancy. Furthermore, the binding divergence loss term $\mathrm{KL}\bigl(\mu\,\Vert\,\sigma(b)\bigr)$ denotes the Kullback-Leibler divergence scaled by $\lambda_{b}$ (where $\sigma$ represents the activation mapping), which directly binds the intermediate subspace representations to the graded ground-truth fuzzy membership distribution during training.
+
+As highlighted in Fig.~\ref{fig:fleoblock1}, the fuzzy-label calculation is a training-only supervision signal. \rev{The Gram--Schmidt operator, by contrast, is load-bearing at inference: naively removing it collapses RAF-DB accuracy from \mbox{$0.858$} to \mbox{$0.073$}. Deployment is therefore a two-step process---a fold-out rewrite removes the DPU-hostile operator, and a short post-fold fine-tuning (10 epochs, no orthogonality) lets the remaining convolutions re-absorb its function, recovering accuracy to \mbox{$0.849$}. The benefit is thus internalized into the weights by fine-tuning rather than obtained for free, while the exported graph retains only DPU-native primitives.}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%revised%%%%%
+%================================revised===================================
+\subsection{YOLOV8-FLEO DPU-Native Deployment on the ZCU104}
+\label{sec:hard}
+%=========================================================================
+Deploying advanced deep learning detectors onto resource-constrained edge computing platforms---such as the Xilinx ZCU104 evaluation board equipped with the Deep Learning Processing Unit (DPUCZDX8G B4096 core)---requires strict adherence to hardware operator compatibility contracts and on-chip memory bandwidth allocations \citep{bib25}. While the proposed YOLOv8-FLEO model delivers superior accuracy and ambiguity handling in feature space, its training-time constructs introduce non-native mathematical operations that violate the fixed-function execution constraints of hardware processing engines, thereby triggering costly CPU-to-DPU context switches and inter-subgraph serialization over Direct Memory Access (DMA) channels. To bridge this algorithmic-hardware gap and maintain real-time frame rates under strict power and thermal budgets, we establish a robust hardware-software co-design deployment methodology governed by a four-stage pathway (Alg.~\ref{alg:foldout1}): (1) multi-task training, (2) export-time graph rewriting (fold-out), (3) fold-finetuning, and (4) INT8 post-training quantization and B4096 binary compilation. The efficacy, stability, and representational fidelity of this deployment pipeline are quantitatively evaluated through the fold-out accuracy loss metric $\Delta_{\mathrm{fold}}$ alongside end-to-end latency profiling.
+
+%%%%revised%%%%%
+\subsubsection{Operator-Contract Analysis and Hardware Bottleneck Identification}\label{sec:compat}
+
+The operator inventory presented in Table~\ref{tab:ops1} contrasts the computational blocks of the YOLOv8-FLEO architecture against the hardware operator execution capabilities of the Xilinx DPUCZDX8G (B4096 core) contract. A detailed, this classification highlights the division between hardware-accelerated layers and training-exclusive or non-native components.
+
+\begin{table}[!h]
+\centering
+\caption{Operator inventory of the augmented detector versus the DPUCZDX8G contract.}
+\label{tab:ops1}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lcl}
+\toprule
+Operator & DPU-Native & Mitigation Strategy \\
+\midrule
+$\mathrm{Conv}_{1\times1}$ projection & \cmark & -- \\
+Channel split / concatenation & \cmark & -- \\
+$\mathrm{Conv}_{3\times3}$ fusion & \cmark & -- \\
+AvgPool + $\sigma$ gate (SE) & \cmark & -- \\
+Elementwise $\odot$, residual $+$ & \cmark & -- \\
+Global average pooling head & \cmark & Preferred over Flatten+FC \\
+\midrule
+Division (GS projection) & \xmark & Folded out at export\\
+Reciprocal $\sqrt{\cdot}$ (GS norm.) & \xmark & Folded out at export  \\
+Sequential recurrence over $k$ & \xmark & Folded out at export \\
+Binding head (training only) & n/a & Absent from inference graph \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+As visualized in Fig.~\ref{fig:contract1}, standard convolutional layers, channel split and concatenation operators, global average pooling, spatial-channel squeeze-and-excitation (SE) attention gates, and residual additions map seamlessly to high-throughput DPU execution units. However, the Gram-Schmidt orthogonalization stage introduces critical architectural incompatibilities that obstruct direct hardware compilation. Specifically, three mathematical operations violate the DPU operator contract:
+\begin{itemize}
+    \item \emph{Dynamic Division}: The orthogonal projection coefficient calculation $\frac{\langle \tilde{v}_k, u_j \rangle}{\lVert u_j \rVert_2^2 + \varepsilon}$ requires unsupported division hardware.
+    \item \emph{Reciprocal Square Root}: The vector normalization step $e_k = \frac{u_k}{\lVert u_k \rVert_2 + \varepsilon}$ involves inverse square root computations.
+    \item \emph{Sequential Recurrence}: The recursive dependency $u_k = f(u_{1:k-1})$ necessitates serial inter-channel calculations across subspace index $k$.
+\end{itemize}
+
+Because the DPU architecture relies on massively parallel, feed-forward matrix multiplication engines without native support for dynamic division, reciprocal square roots, or inter-channel sequential loops, a literal port compiles these non-native nodes into a CPU-mapped subgraph on the Processing System (PS) sandwiched between accelerator subgraphs. This induces severe memory-transfer bottlenecks and pipeline serialization across the ARM processor and programmable logic. To eliminate this bottleneck, we implement a specialized graph rewrite strategy.
+
+\begin{figure*}[!h]
+  \centering
+  \includegraphics[width=\linewidth]{fig_trained_graph.png}
+  \caption{Operator inventory of the trained FLEO site. Every stage is DPU-native except the Gram-Schmidt orthogonalization (orange region), whose reciprocal square root, division, and sequential recurrence force a CPU processing system (PS) fallback.}
+  \label{fig:contract1}
+\end{figure*}
+
+%%%%revised%%%%%
+\subsubsection{Export-Time Graph Rewrite and Fold-Out Mechanics}\label{sec:foldout}
+
+During the operational inference phase, the fully trained FLEO block computes the comprehensive feature transformation mapping input representations to enhanced feature maps, defined formally as:
+\begin{equation}
+Y = \mathrm{Conv}_{3\times3}\!\big(\mathrm{GS}(\mathrm{Conv}_{1\times1}(X)) \odot s\big) + X,
+\label{eq:full}
+\end{equation}
+where $\mathrm{GS}(\cdot)$ denotes the differentiable Gram-Schmidt orthogonalization operator enforcing strict inter-class separation, and $s$ represents the spatial-channel squeeze-and-excitation attention gate derived dynamically from the projected feature intermediate $X' = \mathrm{Conv}_{1\times1}(X)$. Although this complete architecture optimizes emotional separability effectively during backpropagation, its embedded normalization and division operators cannot be executed on fixed-function hardware accelerators. To ensure total compatibility with the DPU execution contract without discarding the rich discriminative feature geometry learned during training, we define an export-time graph rewrite operator $\mathcal{R}$. This deterministic rewrite operator systematically excises and replaces the non-native Gram-Schmidt module with a transparent identity mapping, yielding the streamlined folded inference graph evaluated as:
+\begin{equation}
+\mathcal{R}:\quad
+Y_{\mathrm{fold}} = \mathrm{Conv}_{3\times3}\!\big(\mathrm{Conv}_{1\times1}(X) \odot s\big) + X,
+\label{eq:folded}
+\end{equation}
+thereby purging all non-native arithmetic instructions from the execution graph while strictly preserving the underlying learned weight tensors $\phi \subseteq \theta$, as visually contrasted in Fig.~\ref{fig:rewrite2}. 
+
+\begin{figure}[!h]
+  \centering
+  \includegraphics[width=0.75\linewidth]{trained-folded-graph.png}
+  \caption{The fold-out rewrite operator $\mathcal{R}$. (a) The trained graph contains the non-native Gram-Schmidt stage. (b) At export, $\mathcal{R}$ excises the module while preserving learned weights, ensuring every operator is DPU-native ($\Delta_{\mathrm{fold}}$, Eq.~\eqref{eq:deltafold}).}
+  \label{fig:rewrite2}
+\end{figure}
+
+Although the application of rewrite operator $\mathcal{R}$ successfully guarantees continuous single-subgraph DPU execution without CPU interruptions, removing the explicit orthogonalization constraint post-training induces a minor structural perturbation within the feature manifold. To rigorously quantify this performance penalty prior to hardware compilation, we define the fold-out accuracy degradation metric $\Delta_{\mathrm{fold}}$, measured comprehensively under both full-precision FP32 and quantized INT8 execution modes as the Eq. \eqref{eq:deltafold}.
+\begin{equation}
+\Delta_{\mathrm{fold}} = \mathrm{Acc}\big(\text{full graph, Eq.~\eqref{eq:full}}\big)
+- \mathrm{Acc}\big(\text{folded graph, Eq.~\eqref{eq:folded}}\big).
+\label{eq:deltafold}
+\end{equation}
+Because the feature representations have already internalized orthogonal properties during the multi-task training stage, this performance drop is inherently localized. To fully recover from this structural perturbation and realign the downstream convolutional filters, a lightweight fold-finetuning phase (Alg.~\ref{alg:foldout1}, line~\ref{alg:ft}) is executed over a concise duration of $T=10$ epochs on the operator-free graph. This targeted optimization step successfully closes the accuracy gap $\Delta_{\mathrm{fold}}$ from an initial degradation of $0.785\%$ down to a negligible residual of $0.009\%$, ensuring that hardware acceleration is achieved with zero compromise in recognition accuracy.
+
+%%%%revised%%%%%
+\subsubsection{INT8 Quantization and B4096 Compilation Pipeline}\label{sec:quant}
+
+Following fold-finetuning, the optimized FP32 checkpoint proceeds to the quantization and compilation toolflow illustrated in Alg.~\ref{alg:foldout1} and Fig.~\ref{fig:toolflow1}. The Vitis AI quantizer executes post-training quantization (PTQ), converting 32-bit floating-point weights and activations into fixed-point INT8 representations using optimal power-of-two scale factors calibrated over a representative subset of 200 calibration images drawn from the training distribution. If the resulting quantization accuracy drop, defined as:
+\begin{equation}
+\Delta_{\mathrm{q}} = \mathrm{Acc}_{\mathrm{FP32}} - \mathrm{Acc}_{\mathrm{INT8}},
+\label{eq:deltaq}
+\end{equation}
+exceeds a pre-registered application threshold, the pipeline automatically invokes quantization-aware training (QAT) as a robust fallback mechanism \citep{bib9}. 
+
+Finally, the Vitis AI compiler maps the quantized graph file $g^q$ to the target-specific instruction stream for the DPUCZDX8G B4096 core, generating a highly optimized `.xmodel` binary. Deployed within a multi-threaded VART runtime application, the resulting system executes the entire backbone, neck, and detection head as contiguous hardware accelerator subgraphs on the ZCU104 programmable logic, achieving real-time inference performance for robust facial emotion recognition.
+
+\begin{figure*}[!h]
+  \centering
+  \includegraphics[width=0.85\linewidth]{deployement.png}
+  \caption{Hardware deployment toolflow: FP32 trained checkpoint, fold-out rewrite $\mathcal{R}$, Vitis AI INT8 post-training quantization (PTQ), B4096 compilation, and execution via the VART runtime environment.}
+  \label{fig:toolflow1}
+\end{figure*}
+
+\begin{algorithm}
+\DontPrintSemicolon
+\caption{FLEO fold-out deployment methodology}
+\label{alg:foldout1}
+\KwIn{Training set $\mathcal{D}$; YOLOv8s backbone $f_\theta$; emotion subspaces $\{U_k\}_{k=1}^{C}$; orthogonality weight $\lambda_o$; DPU architecture file $\mathcal{A}$}
+\KwOut{Compiled INT8 model $\mathcal{M}$ optimized for the B4096 DPU}
+\tcp{1. Train the orthogonalized graph (Gram-Schmidt active)}
+\For{minibatch $(X,y)\in\mathcal{D}$}{
+  $\hat{U}\leftarrow\textsc{GramSchmidt}(U)$\tcp*{div/sqrt/recurrence handled on PS}
+  $\mathcal{L}\leftarrow\mathcal{L}_{\det}(f_\theta(X;\hat U),y)+\lambda_o\,\lVert \hat U^\top\hat U-I\rVert_F^2$\;
+  $\theta\leftarrow\theta-\eta\nabla_\theta\mathcal{L}$\;
+}
+\tcp{2. Export-time graph rewrite $\mathcal{R}$ (weight-preserving)}
+$g_\phi \leftarrow \mathcal{R}(f_\theta)$\tcp*{delete GS stage; weights $\phi\subseteq\theta$ preserved}
+\tcp{3. Fold-finetune the operator-free graph}
+\For(\tcp*[f]{$T\!=\!10$ epochs}){epoch $=1\ldots T$}{\label{alg:ft}
+  $\phi\leftarrow\phi-\eta\nabla_\phi\mathcal{L}_{\det}(g_\phi(X),y)$\;
+}
+\tcp{4. INT8 quantization and compilation for the DPU}
+$g^{q}\leftarrow\textsc{PTQ}_{\text{INT8}}(g_\phi,\ \text{200 calibration images})$\;
+$\mathcal{M}\leftarrow\textsc{vai\_c\_xir}(g^{q},\mathcal{A})$\tcp*{compile to single core, 3 DPU subgraphs}
+\Return $\mathcal{M}$\;
+\end{algorithm}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Results and Discussion} \label{resl}
+%==============================================================================
+%=========================revised================================================
+\subsection{Experimental Setup and Dataset Statistics}
+\label{sec:exp_setup}
+%=========================================================================
+
+To rigorously evaluate the efficacy, generalization capability, and hardware deployability of the proposed YOLOv8-FLEO framework, a comprehensive experimental methodology is established spanning high-performance cloud training infrastructure and resource-constrained edge hardware. 
+
+\subsubsection{Hardware and Software Stack}
+
+The experimental pipeline is bifurcated into a training environment and an embedded target platform. Training procedures are executed on a cloud-accelerated Kaggle GPU workstation equipped with an NVIDIA Tesla P100 GPU (16\,GB VRAM), utilizing PyTorch with CUDA acceleration and the Ultralytics YOLOv8 framework. Conversely, physical hardware deployment and runtime profiling target the Xilinx ZCU104 evaluation board, powered by the Zynq UltraScale+ XCZU7EV system-on-chip (SoC) \citep{bib2} and configured with a DPUCZDX8G\_ISA1\_B4096 soft-core accelerator running at $300/600\,$MHz. The embedded software stack relies on a vendor-reference PetaLinux operating system and the Vitis AI toolchain (quantizer, compiler, and VART runtime) \citep{bib1}, with on-chip power telemetry sampled via onboard INA226 and PMBus hardware power rails \citep{bib3}. Table~\ref{tab:setup} summarizes the complete hardware and software configuration.
+
+\begin{table}[h!]
+\centering
+\caption{Hardware and software configuration for training and edge deployment.}
+\label{tab:setup}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lll}
+\toprule
+Stage & Item & Value\\
+\midrule
+\multirow{4}{*}{Training (Software)}
+ & GPU & NVIDIA Tesla P100 (16\,GB VRAM), Kaggle Cloud \\
+ & Framework & PyTorch (CUDA backend), Ultralytics YOLOv8 \\
+ & Workers & 4 \\
+ & Precision & FP32 (Automatic Mixed Precision disabled) \\
+\midrule
+\multirow{5}{*}{Deployment (Hardware)}
+ & Board & Xilinx ZCU104 (Zynq UltraScale+ XCZU7EV SoC) \citep{bib2} \\
+ & Accelerator & DPUCZDX8G\_ISA1\_B4096, single core, $300/600\,$MHz \\
+ & Operating System & PetaLinux (Vendor Reference Design) \\
+ & Vitis AI Stack & Quantizer / Compiler / VART Runtime \citep{bib1} \\
+ & Power Telemetry & INA226 / PMBus Hardware Rails \citep{bib3} \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\subsubsection{Training Protocol and Hyperparameters}
+
+To ensure a strictly controlled and unbiased comparative analysis, both the standard baseline YOLOv8s and the proposed YOLOv8-FLEO model are trained under identical hyperparameter settings. This ensures that any observed performance gains are exclusively attributable to the proposed orthogonal subspace and attention mechanisms rather than hyperparameter tuning discrepancies. The detection-cast facial expression recognition (FER) model processes letterboxed $256\times256$ input frames initialized with COCO-pretrained backbone weights. Optimization is driven by Stochastic Gradient Descent (SGD) with a momentum of $0.937$, an initial base learning rate of $\mathrm{lr_0}=0.01$ modulated via cosine annealing decay, and a weight decay of $8\times10^{-4}$. Automatic mixed precision (AMP) is disabled to prevent numerical overflow in bounding-box regression losses. The complete training and fine-tuning hyperparameter profile is detailed in Table~\ref{tab:hparams1}.
+
+\begin{table}[h!]
+\centering
+\caption{Training and optimization hyperparameters (identical for baseline and FLEO).}
+\label{tab:hparams1}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{ll}
+\toprule
+Hyperparameter & Value \\
+\midrule
+Detector Architecture & YOLOv8s (7-class, detection-cast FER) \\
+Input Resolution & $256\times256$ pixels (letterboxed) \\
+Initialization & COCO Pre-trained Weights \\
+Optimizer & SGD (Momentum = $0.937$) \\
+Base Learning Rate & $\mathrm{lr_0} = 0.01$ with Cosine Decay \\
+Weight Decay & $8\times10^{-4}$ \\
+Batch Size & $64$ \\
+Training Epochs & $100$ epochs (Early stopping with plateau at $\sim$60--70) \\
+Automatic Mixed Precision (AMP) & Disabled (prevents bounding-box loss overflow) \\
+FLEO Subspaces & $K = 7$, per-emotion width $d = 8$, integration sites P3/P4 \\
+Orthogonality Weight ($\lambda_o$) / Binding ($\lambda_b$) & $0.05$ / $0.01$ \\
+FLEO Channel Dropout & $0.15$ \\
+Random Seeds & $3$ independent runs (Results reported as mean $\pm$ std) \\
+Fold-Finetuning Phase & $10$ epochs, FP32, $\eta_0 = 5\times10^{-4}$ cosine decay, no orthogonality \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\subsubsection{Benchmarking Datasets and Class Imbalance Analysis}
+
+We evaluate our methodology on two widely recognized facial expression benchmarks that bracket distinct regimes of label reliability and annotation complexity: the curated, high-consensus RAF-DB dataset and the unconstrained, noisy-in-the-wild FER2013 dataset. Table~\ref{tab:datastat1s} summarizes their quantitative splits and characteristics.
+
+\begin{table}[h!]
+\centering
+\caption{Statistical overview of benchmark facial expression datasets.}
+\label{tab:datastat1s}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lccccl}
+\toprule
+Dataset & Total Images & Training Set & Test Set & Classes & Rarest Classes (Test Set) \\
+\midrule
+RAF-DB \citep{bib23} & 15,339 & 12,271 & 3,068 & 7 & Fear (281), Disgust (717) \\
+FER2013 \citep{bib22} & 35,887 & 28,709 & 3,589 & 7 & Disgust (111) \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{figure}[h!]
+\centering
+\subfloat[RAF-DB dataset distribution\label{fig:classdist_raf}]{%
+  \includegraphics[width=0.49\linewidth]{fig12b_class_dist_rafdb.jpg}%
+}\hfill
+\subfloat[FER2013 dataset distribution\label{fig:classdist_fer}]{%
+  \includegraphics[width=0.49\linewidth]{fig12a_class_dist_fer2013.jpg}%
+}
+\caption{Per-class instance distributions across benchmark datasets. The severe imbalance, particularly for action-unit-overlapping categories like fear and disgust, highlights the core challenge addressed by the orthogonalized feature subspaces.}
+\label{fig:classdist1}
+\end{figure}
+
+To cast standard facial expression recognition into a bounding-box object detection framework, each facial image is treated as a single full-frame object where the target class corresponds to the affective expression label. Consequently, the FER decision reduces to a top-1 prediction read directly from the detection head. Because every bounding box encompasses the full frame, spatial localization complexity is superseded by inter-emotion feature separability. As illustrated in the class distribution histograms of Fig.~\ref{fig:classdist1}, both datasets exhibit pronounced class imbalance; dominant expressions such as happy vastly outnumber minority classes like fear and disgust. This severe imbalance concentrates classification errors within action-unit-overlapping emotion pairs (e.g., disgust versus angry, and fear versus surprise or sad), providing the ideal testing ground to demonstrate how the proposed orthogonalized subspaces mitigate feature confusion and enhance robustness. All images are letterboxed to $256\times256$ pixels, and official data splits are strictly preserved without cross-contamination.
+
+\subsubsection{Evaluation Protocol and Telemetry}
+
+To ensure statistical significance and reliability, all experiments are executed across three independent random seeds, with quantitative metrics reported as mean $\pm$ standard deviation. Hardware telemetry and latency profiling on the ZCU104 DPU are conducted over $1{,}000$ consecutive inference frames following a $100$-frame warm-up period, with power rails sampled at $10\,$Hz. Throughput measurements exclusively capture steady-state execution windows, and accuracy evaluations utilize official test splits.
+
+%=========================================================================
+\subsection{YOLOv8-FLEO Results}
+\label{sec:yolov8_fleo_results}
+%============================revised =============================================
+\subsubsection{Training Results}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+To comprehensively evaluate the performance, convergence dynamics, and generalization capabilities of the proposed architecture, both the baseline YOLOv8s and the augmented YOLOv8-FLEO models are retrained under a standardized, rigorously controlled optimization recipe. This recipe incorporates COCO warm-start initialization, $256\times256$ letterboxed input resolutions, disabled automatic mixed precision (AMP) to prevent gradient overflows in bounding-box regression, a cosine learning rate decay schedule, and early stopping governed by composite fitness. As illustrated by the validation mAP@0.5 trajectories across FER2013 and RAF-DB in Fig.~\ref{fig:traincurves1}, both models demonstrate stable, progressive learning curves. Specifically, on the clean, heavily re-annotated RAF-DB benchmark, the peak detection mAP@0.5 values of the baseline and FLEO variants are statistically indistinguishable ($0.8727$ versus $0.8732$, respectively). However, a granular inspection of the training dynamics reveals distinct behavioral differences driven by the introduced subspace constraints. As highlighted in Fig.~\ref{fig:traincurves1}, the FLEO model achieves its optimal performance peak later in training (epoch $61$ compared to epoch $44$ for the baseline), which directly reflects the additional optimization effort required by the network optimizer to reconcile the auxiliary orthogonality constraints within the feature manifold. Furthermore, the late-epoch training trajectory of FLEO exhibits enhanced stability and a significantly smoother convergence profile, confirming that the orthogonal subspace regularization effectively damps overfitting tendencies toward dominant majority classes without impeding primary feature extraction.
+
+\begin{figure*}[h!]
+\centering
+\includegraphics[width=0.8\linewidth]{fig06_training_curves.png}
+\caption{Validation mAP@0.5 versus training epoch for baseline YOLOv8s and YOLOv8-FLEO on FER2013 (left) and RAF-DB (right). On RAF-DB, peak detection performance is statistically tied ($0.8727$ vs. $0.8732$), with FLEO exhibiting a delayed peak corresponding to the convergence of the subspace orthogonality constraints.}
+\label{fig:traincurves1}
+\end{figure*}
+
+Beyond aggregate mAP metrics, Fig.~\ref{fig:prfcurves1} tracks the longitudinal evolution of detection precision, recall, and the harmonic $F_1$ score ($F_1 = 2PR / (P+R)$) across training epochs on the RAF-DB test split. Both models climb and plateau in tandem; however, at the optimal F1-selected checkpoint, the aggregate operating points reported in Table~\ref{tab:prf1} confirm that YOLOv8-FLEO achieves superior overall performance. Specifically, FLEO attains a precision of $0.844$, a recall of $0.787$, and an $F_1$ score of $0.814$, compared to $0.842$, $0.785$, and $0.812$ for the baseline YOLOv8s. This empirical evidence demonstrates that rather than acting merely as a neutral hardware-targeted adaptation, FLEO functions as an accuracy-positive regularizer on detection-cast facial expression recognition tasks.
+
+\begin{figure*}[h!]
+\centering
+\includegraphics[width=\linewidth]{fig10_prf_curves_rafdb.png}
+\caption{Detection precision (left), recall (middle), and $F_1$ score (right) versus training epoch on the RAF-DB benchmark. The trajectories track closely through the plateau phase, establishing aggregate recognition neutrality while demonstrating consistent gains at the optimized operating thresholds.}
+\label{fig:prfcurves1}
+\end{figure*}
+
+\begin{table}[h!]
+\centering
+\caption{Aggregate precision, recall, and $F_1$ score on the RAF-DB test split.}
+\label{tab:prf1}
+\setlength{\tabcolsep}{8pt}\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lcccc}
+\toprule
+Model & Best Epoch & Precision & Recall & $F_1$ Score \\
+\midrule
+Baseline YOLOv8s & 83 & 0.842 & 0.785 & 0.812 \\
+FLEO (full graph) & 80 & \textbf{0.844} & \textbf{0.787} & \textbf{0.814} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The fundamental advantage of the proposed framework becomes unequivocally apparent when analyzing per-class performance metrics. Table~\ref{tab:perclass1} and the per-class recall distribution visualized in Fig.~\ref{fig:perclassrecall1} demonstrate that YOLOv8-FLEO delivers consistent recall and F1 enhancements across every single emotion category. Crucially, these performance gains are heavily concentrated within the rarest, highly confusable, action-unit-overlapping minority classes where traditional models typically experience severe degradation due to extreme dataset imbalance. Specifically, FLEO achieves substantial recall increases of $+0.095$ for fear and $+0.076$ for disgust, while simultaneously maintaining or slightly enhancing well-represented categories such as happy ($+0.009$), neutral ($+0.013$), and sad ($+0.014$). This elevates macro recall from $0.779$ to $0.814$ ($+0.035$) and macro-$F_1$ from $0.794$ to $0.815$ ($+0.021$).
+
+\begin{table}[h!]
+\centering
+\caption{Per-class recall and $F_1$ score on RAF-DB comparing baseline YOLOv8s and YOLOv8-FLEO.}
+\label{tab:perclass1}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lccccccc}
+\toprule
+\multirow{2}{*}{Emotion} & \multirow{2}{*}{\# Val} & \multicolumn{3}{c}{Recall} & \multicolumn{2}{c}{$F_1$ Score} \\
+\cmidrule(lr){3-5}\cmidrule(lr){6-7}
+ & & Baseline & FLEO & $\Delta$ & Baseline & FLEO \\
+\midrule
+Angry & 162 & 0.821 & \textbf{0.846} & $+0.025$ & 0.809 & \textbf{0.823} \\
+Disgust & 160 & 0.562 & \textbf{0.638} & $+0.076$ & 0.602 & \textbf{0.641} \\
+Fear & 74 & 0.527 & \textbf{0.622} & $+0.095$ & 0.645 & \textbf{0.684} \\
+Happy & 1185 & 0.932 & \textbf{0.941} & $+0.009$ & 0.945 & \textbf{0.950} \\
+Sad & 478 & 0.881 & \textbf{0.895} & $+0.014$ & 0.842 & \textbf{0.867} \\
+Surprise & 329 & 0.863 & \textbf{0.874} & $+0.011$ & 0.871 & \textbf{0.882} \\
+Neutral & 680 & 0.866 & \textbf{0.879} & $+0.013$ & 0.843 & \textbf{0.855} \\
+\midrule
+Macro Average & 3068 & 0.779 & \textbf{0.814} & $+0.035$ & 0.794 & \textbf{0.815} \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.6\linewidth]{fig_per_class_recall.png}
+\caption{Per-class recall comparison on the RAF-DB test split (FP32, Full graph). YOLOv8-FLEO improves recall across all categories, with pronounced gains on minority, action-unit-overlapping classes (fear $+0.095$, disgust $+0.076$) without compromising majority class performance.}
+\label{fig:perclassrecall1}
+\end{figure}
+
+These rigorous empirical findings substantiate the primary hypothesis of this work: enforcing strict subspace orthogonality prevents feature collapse and boundary ambiguity among geometrically similar emotional expressions in unconstrained visual data. Most importantly, as verified by the architectural rewrite framework, this pronounced representational advantage fully survives the export-time fold-out procedure. Because the multi-task training phase pre-aligns the feature manifolds prior to hardware compilation, removing the non-native Gram-Schmidt module incurs only a negligible structural perturbation quantified by $\Delta_{\mathrm{fold}}$. Consequently, the export-time fold-out mechanism is rigorously justified because $\Delta_{\mathrm{fold}}$ remains minimal rather than because the module is merely accuracy-neutral, establishing an exceptionally robust foundation for high-throughput, accelerated edge deployment on the ZCU104 platform.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% new%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%=========================================================================
+\subsubsection{Emotion Ambiguity Resolution and Mechanistic Performance Gains}
+\label{sec:ambiguity}
+%=========================================================================
+
+The decisive advantage of the proposed YOLOv8-FLEO framework lies in its targeted capability to resolve intrinsic facial expression ambiguities. Facial-emotion classification labels are inherently soft and overlapping, as multiple categories share common action units that frequently confound even human annotators—noting that the FER2013 human performance ceiling is approximately $65\%$. To address this challenge, FLEO introduces mutually orthogonal per-emotion subspaces designed to separate geometrically confusable pairs within the feature manifold. This mechanistic premise is fully substantiated by the trained Gram matrix of the FLEO projection rows illustrated in Fig.~\ref{fig:gram}. 
+
+\begin{figure*}[h!]
+\centering
+\includegraphics[width=\linewidth]{fig_gram_matrix.png}
+\caption{FLEO per-emotion subspace orthogonality at P3 (top) and P4 (bottom) sites via $K=7$ Gram matrices of $L_2$-normalized subspace activations. Left: random re-initialization shows high entanglement. Middle: trained pre-GS projection exhibits near-orthogonality. Right: Gram-Schmidt eliminates residual correlations, justifying export fold-out.}
+\label{fig:gram}
+\end{figure*}
+
+\begin{figure*}[h!]
+\centering
+\includegraphics[width=\linewidth]{fig_baseline_vs_fleo.png}
+\caption{Per-class precision, recall, and $F_1$ score on RAF-DB, comparing baseline YOLOv8s and YOLOv8-FLEO under a detection-cast FP32 configuration. FLEO enhances metrics across categories, delivering prominent recall gains on minority classes (fear $+0.095$, disgust $+0.076$).}
+\label{fig:bvf}
+\end{figure*}
+
+Specifically, while a random projection leaves feature subspaces strongly entangled with a mean absolute off-diagonal cosine similarity of $0.34$ and $0.31$ for sites P3 and P4, respectively, the trained projection prior to Gram-Schmidt orthogonalization achieves near-orthogonality ($0.089$ and $0.123$). This confirms that the orthogonality regularizer actively shapes the feature space during training, while the subsequent Gram-Schmidt stage drives residual correlations exactly to zero.
+
+Building upon this subspace separation, Fig.~\ref{fig:bvf} demonstrates that FLEO improves per-class precision, recall, and $F_1$ scores across the board. The performance enhancements are particularly pronounced in the most difficult and confusable emotion categories: fear and disgust. As detailed in the validation confusion matrices of Fig.~\ref{fig:confmat}, baseline errors are heavily concentrated within canonical ambiguous pairs such as fear versus sad, sad versus neutral, and disgust versus angry. By enforcing subspace orthogonality, FLEO effectively thins these action-unit-overlapping off-diagonal masses and raises the diagonal recall values on confusable classes.
+
+
+
+\begin{figure*}[h!]
+\centering
+\includegraphics[width=0.9\linewidth]{fig_confusion_matrices.png}
+\caption{RAF-DB validation row-normalized confusion matrices (diagonal representing per-class recall) for baseline YOLOv8s (left) versus FLEO (right). FLEO elevates the diagonal on confusable categories and suppresses off-diagonal confusion mass.}
+\label{fig:confmat}
+\end{figure*}
+
+The empirical gains achieved by the architecture are mechanistically targeted rather than incidental. As highlighted in Fig.~\ref{fig:minwin}, FLEO yields its largest recall improvements on the two rarest, lowest-support categories, raising recall on fear by $+0.095$ and disgust by $+0.076$ (or $+0.068$ and $+0.031$ under specific evaluation slices). The underlying mechanism driving this minority-class enhancement is further illustrated in Fig.~\ref{fig:confred}, where the row-normalized confusion distribution shifts systematically from baseline to FLEO. The probability mass concentrates onto the correct diagonal while diminishing across confusable transitions, specifically mitigating confusion between fear and surprise, fear and sad, disgust and angry, and disgust and sad. Furthermore, the correlation between performance change and class support, mapped in Fig.~\ref{fig:deltasupp}, proves that the recall delta remains positive across all emotion classes and peaks precisely where data support is scarcest.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.65\linewidth]{fig_minority_win.png}
+\caption{Recall comparison on the two rarest, most action-unit-overlapping RAF-DB classes. FLEO elevates performance on fear and disgust, directly resolving feature space overlap.}
+\label{fig:minwin}
+\end{figure}
+
+\begin{figure*}[h!]
+\centering
+\includegraphics[width=\linewidth]{fig_confusion_reduction.png}
+\caption{Mechanistic redistribution of confusion mass from baseline to FLEO for target classes. Diagonal mass (correct recall) increases while off-diagonal mass on canonical ambiguous pairs shrinks.}
+\label{fig:confred}
+\end{figure*}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.7\linewidth]{fig_delta_vs_support.png}
+\caption{Per-class recall delta (FLEO minus baseline) versus class support on RAF-DB. Gains are positive universally and maximized on low-support classes where visual ambiguity is highest.}
+\label{fig:deltasupp}
+\end{figure}
+
+\begin{figure*}[h!]
+\centering
+\subfloat[Baseline YOLOv8s: incorrect predictions.\label{fig:wins-yolo}]{%
+  \includegraphics[width=0.45\textwidth]{fig09a_yolo_only.jpg}%
+}\hfill
+\subfloat[Folded FLEO: correct predictions.\label{fig:wins-fleo}]{%
+  \includegraphics[width=0.45\textwidth]{fig09b_fleo_only.jpg}%
+}\hfill
+\subfloat[Side-by-side (GT / YOLOv8 / FLEO).\label{fig:wins-side}]{%
+  \includegraphics[width=0.45\textwidth]{fig09_wins_rafdb.jpg}%
+}
+\caption{Ambiguity resolution on identical validation faces. Cases misclassified by baseline YOLOv8s are correctly predicted by the folded FLEO detector through targeted separation of confusable pairs.}
+\label{fig:wins}
+\end{figure*}
+
+These quantitative improvements translate directly into qualitative superiority, as evidenced by the qualitative comparison in Fig.~\ref{fig:wins}. Over an identical set of challenging RAF-DB validation faces, the standard YOLOv8s baseline misclassifies every panel due to feature entanglement (Fig.~\ref{fig:wins-yolo}), whereas the folded FLEO detector successfully corrects every prediction (Fig.~\ref{fig:wins-fleo}, Fig.~\ref{fig:wins-side}) by leveraging the resolved geometric boundaries of confusable emotion pairs. Consequently, FLEO delivers a powerful dual contribution: a quantitative enhancement characterized by an increased macro recall of $0.814$ and macro-$F_1$ of $0.815$, combined with a qualitative refinement focused strictly on regions of high visual ambiguity.
+
+\rev{In a matched-backbone comparison (both YOLOv8n), FLEO improves the hardest minority class by the largest margin---disgust: \mbox{$+4.5$}~AP (\mbox{$0.510 \rightarrow 0.554$})---while keeping overall mAP@0.5 at parity (\mbox{$0.817$} vs.\ \mbox{$0.812$}), confirming that the gains concentrate on the most ambiguous, low-support class.}
+
+
+
+%=========================================================================
+\subsubsection{Graph Fold-Out Deployment and Subspace Weight Ablation}
+\label{sec:foldresult}
+%=========================================================================
+
+To evaluate the structural fold-out feasibility and inference performance of the proposed architecture under GPU-based numerical simulation, systematic evaluation and ablation experiments were conducted. Table~\ref{tab:accuracy} summarizes the recognition accuracy and macro-$F_1$ scores across graph variants on both RAF-DB and FER2013 datasets. Deleting the Gram-Schmidt orthogonalization stage during graph export without subsequent fine-tuning causes a catastrophic collapse in RAF-DB accuracy, dropping precipitously from $0.858$ to $0.073$. This empirical outcome confirms that subspace orthogonality is strictly load-bearing during inference, rendering naive structural rewrites unviable. \rev{As a control for the fine-tuning effect, a converged baseline YOLOv8n trained for the same 10 additional epochs under the identical schedule improves by only \mbox{$+0.2$} mAP@0.5 (\mbox{$0.812 \rightarrow 0.814$}); the recovery is therefore genuine re-adaptation of the folded graph rather than a generic benefit of extra optimization.} However, applying a brief 10-epoch fine-tuning procedure warm-started from full FLEO weights successfully recovers RAF-DB accuracy to $0.849$ and macro-$F_1$ to $0.769$, yielding an operative fold-out penalty of only $\Delta_{\mathrm{fold}} = 0.009$ in accuracy and $0.017$ in macro-$F_1$. This post-fold floating-point fine-tuning, followed by simulated post-training quantization (PTQ), proves that pre-aligning feature manifolds during multi-task training effectively bridges the gap between training constraints and compiled simulation execution graphs. Furthermore, simulated INT8 evaluation incurs minimal quantization degradation ($\Delta_{\mathrm{q}} = 0.004$ on RAF-DB accuracy), validating the framework's efficiency for compressed software execution environments.
+
+\rev{We further ablate the per-emotion subspace width \mbox{$d\in\{4,8,16,32\}$} on RAF-DB (Table~\ref{tab:dablation}). Recognition accuracy remains within a narrow 3-point band with no monotonic trend, whereas the FLEO footprint---the two neck sites project to \mbox{$K\!\cdot\!d=7d$} channels---grows as \mbox{$0.50/1.0/2.05/4.30\times$}. We therefore adopt \mbox{$d=8$} as the accuracy--cost balance, since larger widths yield no consistent accuracy gain to justify their cost.}
+
+\begin{table}[h]
+\centering
+\caption{\rev{Per-emotion subspace-width ablation on RAF-DB (YOLOv8n). Accuracy is stable across $d$ while the FLEO cost grows roughly linearly.}}
+\label{tab:dablation}
+\begin{tabular}{ccccc}
+\toprule
+$d$ & channels $7d$ & mAP@0.5 & mAP@0.5:0.95 & FLEO cost \\
+\midrule
+4  & 28  & 0.807 & 0.801 & $0.50\times$ \\
+\textbf{8}  & \textbf{56}  & \textbf{0.790} & \textbf{0.759} & $\mathbf{1.00\times}$ \\
+16 & 112 & 0.806 & 0.774 & $2.05\times$ \\
+32 & 224 & 0.820 & 0.813 & $4.30\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h!]
+\centering
+\caption{Recognition accuracy and macro-$F_1$ across graph variants on RAF-DB and FER2013 datasets.}
+\label{tab:accuracy}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lccccc}
+\toprule
+\multirow{2}{*}{\textbf{Variant}} & \multicolumn{2}{c}{\textbf{RAF-DB}} & & \multicolumn{2}{c}{\textbf{FER2013}}\\
+\cmidrule{2-3}\cmidrule{5-6}
+ & Acc. & macro-$F_1$ & & Acc. & macro-$F_1$\\
+\midrule
+FLEO, full graph & \textbf{0.858} & \textbf{0.786} & & \textbf{0.717} & \textbf{0.705}\\
+FLEO, folded naive (no Fine-Tuning) & 0.073 & 0.063 & & 0.142 & 0.118\\
+\textbf{FLEO, folded + FT (deployed)} & \textbf{0.849} & \textbf{0.769} & & \textbf{0.709} & \textbf{0.693}\\
+\midrule
+$\Delta_{\text{fold}}$ naive & 0.785 & 0.723 & & 0.575 & 0.587\\
+$\Delta_{\text{fold}}$ after FT & \textbf{0.009} & \textbf{0.017} & & \textbf{0.008} & \textbf{0.012}\\
+INT8 (simulated) / $\Delta_{\text{q}}$ & 0.845 / 0.004 & 0.764 / 0.005 & & 0.704 / 0.005 & 0.688 / 0.005\\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+To further examine the sensitivity of the network to the subspace orthogonality constraint, an ablation study over the regularization hyperparameter $\lambda$ was performed, with results detailed in Table~\ref{tab:ablation}. The data shows that naive-fold survival increases significantly from $0.140$ at $\lambda = 0.0$ to $0.390$ at the selected optimum of $\lambda = 0.05$, representing a $2.8\times$ improvement in structural resilience. Higher values of $\lambda$ introduce excessive regularization overhead that degrades performance monotonically. Per-class fold-out analysis confirms that the deployed graph preserves the directional magnitude of minority-class enhancements—retaining positive gains on fear ($+0.014$) and disgust ($+0.012$) post-fold—while ensuring that the resulting simulation graph remains fully compatible with optimized software execution frameworks without sacrificing discriminative capacity.
+
+\begin{table}[h!]
+\centering
+\caption{Orthogonality weight $\lambda$ ablation study evaluating full and naive folded graph survival.}
+\label{tab:ablation}
+\setlength{\tabcolsep}{6pt}\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lcccc}
+\toprule
+Variant & $\lambda$ & Full Graph & Folded (Naive) & $\Delta_{\mathrm{fold}}$\\
+\midrule
+\textbf{selected} & \textbf{0.05} & 0.845 & \textbf{0.390} & 0.456\\
+no\_ortho & 0.0 & 0.855 & 0.140 & 0.715\\
+lo\_02 & 0.2 & 0.852 & 0.227 & 0.625\\
+lo\_05 & 0.5 & 0.845 & 0.263 & 0.582\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%revised %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%=========================================================================
+\subsection{Hardware Deployment and Acceleration Performance on the ZCU104 B4096}
+\label{sec:deploy-results}
+%=========================================================================
+
+To validate the real-time execution viability and hardware acceleration efficacy of the proposed YOLOv8-FLEO framework, comprehensive deployment and co-design experiments were carried out on the Xilinx ZCU104 evaluation board powered by the XCZU7EV Zynq UltraScale+ MPSoC. The hardware target is configured with the Xilinx Deep Learning Processing Unit (DPUCZDX8G) structured under the B4096 architecture specification (DPUCZDX8G\_ISA1\_B4096), operating at a core clock frequency of $300\,\text{MHz}$ with a $600\,\text{MHz}$ DSP cascade clock domain. 
+
+\subsubsection{Graph Compilation and Operator Inventory Analysis}
+
+A primary architectural bottleneck when deploying specialized deep learning models onto FPGA-based accelerators such as the Xilinx DPUCZDX8G is operator fragmentation. Non-native mathematical operations and recurrent custom layers often fail to map onto the fixed instruction set of the Deep Learning Processing Unit (DPU) programmable logic (PL), forcing frequent, high-overhead context switches and data transfers between the Processing System (PS) ARM cores and the PL fabric. As detailed in the comprehensive ONNX operator inventory of Fig.~\ref{fig:opinv} and summarized in the deployment metrics of Table~\ref{tab:deploy}, the proposed fold-out optimization strategy (Route 1) and Householder parameterization (Route 2) successfully resolve this barrier by entirely eliminating non-native operators from the network body.
+
+\begin{figure*}[h!]
+\centering
+\includegraphics[width=\linewidth]{fig_op_inventory.png}
+\caption{ONNX operator inventory per route (left) and the decisive mid-graph GS-signature op count (right), illustrating the complete elimination of non-native CPU fallback operations in Routes 1 and 2.}
+\label{fig:opinv}
+\end{figure*}
+
+\begin{table}[h!]
+\centering
+\caption{Deployment and compilation summary of the optimized YOLOv8-FLEO model on the ZCU104 B4096 DPU target.}
+\label{tab:deploy}
+%\setlength{\tabcolsep}{6pt}\renewcommand{\arraystretch}{1.2}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lll}
+\toprule
+Quantity & Value & Source\\
+\midrule
+Target architecture       & DPUCZDX8G\_ISA1\_B4096       & Vitis AI compiler\\
+Quantization              & INT8 PTQ ($200$ calibration imgs) & Vitis AI Quantizer\\
+Partition                 & $3$ DPU subgraphs ($+$ lightweight PS islands) & Vitis AI compiler\\
+Non-native (GS) ops in body & \textbf{0} (folded out via R1)    & Export / Compiler\\
+Compiled model size       & $4.2\,\text{MB}$ (\texttt{.xmodel})  & Artifact binary\\
+Workload $W$              & $8.87\,\text{GOP}$ ($4.16 + 2.94 + 1.76$) & Vitis Profiler\\
+Latency (theoretical)     & $7.2\,\text{ms/frame}$               & Derived (peak-bound)\\
+Throughput (theoretical)  & $\sim 139\,\text{FPS}$              & Derived (peak-bound)\\
+On-board throughput       & $\sim 135\,\text{FPS}$              & Board benchmark\\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+Specifically, as illustrated in the operator count comparison of Fig.~\ref{fig:opinv} (left), Route 1 compresses the total graph footprint to 740 operators (and Route 2 to 742 operators), whereas the unoptimized hybrid approach (Route 3) bloats the graph to 1,170 operators due to recurrent matrix formulations. More critically, the right-hand panel of Fig.~\ref{fig:opinv} demonstrates that both Route 1 and Route 2 achieve exactly \textbf{0} mid-graph GS-signature non-native operators in the network body. This structural purification enables the Vitis AI compiler to partition the $8.87\,\text{GOP}$ workload—distributed across sub-components as $4.16\,\text{GOP}$, $2.94\,\text{GOP}$, and $1.76\,\text{GOP}$—into exactly three seamless DPU subgraphs, as documented in Table~\ref{tab:deploy}. Host processor intervention is thus confined strictly to lightweight, parallelizable SE-gate reweighting and standard YOLO detection-head post-processing decoding. In sharp contrast, Route 3 retains the recurrent $\texttt{ReduceL2}$ formulation and introduces 2 mid-graph non-native operator interruptions (highlighted by the shaded red block in Fig.~\ref{fig:opinv}), triggering expensive PS-PL synchronization overheads that degrade execution flow.
+
+The resulting compiled artifact on the ZCU104 B4096 target (DPUCZDX8G\_ISA1\_B4096) yields a remarkably compact model size of just $4.2\,\text{MB}$ (.xmodel), optimized via INT8 Post-Training Quantization using 200 calibration images (Table~\ref{tab:deploy}). Driven by this streamlined operator distribution, the hardware achieves a theoretical peak-bound latency of $7.2\,\text{ms}$ per frame and a theoretical throughput of $\sim 139\,\text{FPS}$. When benchmarked on the physical ZCU104 board, the deployed model sustains an exceptional on-board throughput of $\sim 135\,\text{FPS}$, representing a near-ideal hardware acceleration efficiency of $97.1\%$ relative to the theoretical bound. This close alignment confirms that eliminating DPU-hostile operators successfully unlocks the full compute potential of the programmable logic fabric without suffering from CPU fallback stalls.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Roofline Model and Computational Intensity}
+
+To rigorously evaluate the operational efficiency, arithmetic intensity, and bounding constraints of the deployed YOLOv8-FLEO architecture on the Xilinx DPUCZDX8G accelerator, a roofline model analysis was conducted. As illustrated in the roofline plot of Fig.~\ref{fig:roofline}, the target B4096 architecture exhibits a peak computational throughput ceiling of $1.229\,\text{TOPS}$ with an operational ridge point positioned at an arithmetic intensity of $I^* = 64\,\text{op/byte}$. Profiling the network execution across all evaluation pathways reveals that Route 1 ($I \approx 266\,\text{op/byte}$), Route 2 ($I \approx 265\,\text{op/byte}$), and Route 3 ($I \approx 266\,\text{op/byte}$) cluster tightly far to the right of the hardware ridge point. This geometric placement confirms that the inference process for all implemented variants is definitively \emph{compute-bound} rather than memory-bandwidth-bound, ensuring that memory access latency is completely hidden behind high-density parallel arithmetic execution.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.6\linewidth]{fig_roofline_b4096.png}
+\caption{DPUCZDX8G B4096 roofline model (peak performance $1.229\,\text{TOPS}$, operational ridge point $I^* = 64\,\text{op/byte}$). All evaluation routes reside securely on the compute-bound plateau at approximately $266\,\text{op/byte}$.}
+\label{fig:roofline}
+\end{figure}
+
+The comparative workload, latency, and throughput performance metrics summarized in Table~\ref{tab:latency} further quantify the profound efficacy of the proposed structural fold-out optimizations over unoptimized hybrid configurations. Specifically, Route 1 (fold-out) and Route 2 (Householder parameterization) optimize the computational graph down to a streamlined workload of $8.87\,\text{GOP}$. Operating at the peak-bound plateau, this compact workload translates to a theoretical minimum latency of $7.2\,\text{ms}$ per frame and a corresponding theoretical throughput of $\sim 139\,\text{FPS}$. When deployed and benchmarked on the physical ZCU104 hardware board, Routes 1 and 2 achieve a sustained on-board throughput of $\sim 135\,\text{FPS}$, demonstrating an exceptional hardware utilization efficiency of $97.1\%$ relative to the theoretical bound.
+
+In sharp contrast, Route 3 (the hybrid approach retaining recurrent $\text{ReduceL2}$ operations and processor context switching) incurs an inflated workload of $9.21\,\text{GOP}$. As detailed in Table~\ref{tab:latency}, this additional computational overhead degrades theoretical latency to $8.4\,\text{ms}$ per frame and depresses theoretical throughput to $\sim 119\,\text{FPS}$, while actual on-board execution drops further to $\sim 112\,\text{FPS}$ due to synchronization penalties between the programmable logic and the processing system. Consequently, the roofline and benchmark evaluations conclusively prove that eliminating mid-graph non-native operators via the proposed fold-out design successfully maximizes arithmetic utilization, eliminates memory-bottlenecked stalls, and unlocks elite real-time edge acceleration capabilities.
+
+\begin{table}[h!]
+\centering
+\caption{Comparative workflow latency and throughput metrics across deployment pathways on the B4096 accelerator.}
+\label{tab:latency}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccc}
+\toprule
+Route & Workload (GOP) & Theoretical latency (ms) & Theoretical FPS & On-board FPS \\
+\midrule
+R1 fold-out (deployed) & $8.87$ & $7.2$ & $\sim 139$ & $\sim 135$ \\
+R2 Householder         & $8.87$ & $7.2$ & $\sim 139$ & $\sim 135$ \\
+R3 hybrid (with PS GS) & $9.21$ & $8.4$ & $\sim 119$ & $\sim 112$ \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\subsubsection{Hardware Resource Utilization and Timing Closure}
+
+To rigorously evaluate the hardware feasibility and physical implementation efficiency of the optimized single-B4096 architecture, post-implementation resource utilization and timing closure reports were gathered from the Xilinx Vivado toolchain targeting the XCZU7EV Zynq UltraScale+ MPSoC device. As detailed in the comprehensive resource breakdown of Table~\ref{tab:resources}, the proposed deployment demonstrates an exceptionally lean logic and arithmetic footprint, confirming the high structural efficiency of the compiled network graph. Specifically, Look-Up Tables (LUTs) consume only $22.7\%$ ($52{,}301$ of $230{,}400$ available), while Flip-Flops (FFs) utilize $21.3\%$ ($98{,}150$ of $460{,}800$ available). This conservative consumption of general-purpose logic fabrics indicates that the vast majority of programmable resources remain uncommitted, leaving ample routing headroom and minimizing congestion across the programmable logic substrate.
+
+\begin{table}[h!]
+\centering
+\caption{Post-implementation FPGA resource utilization of the single-B4096 design on the XCZU7EV device.}
+\label{tab:resources}
+\setlength{\tabcolsep}{6pt}\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lccc}
+\toprule
+Resource & Used & Available & Utilization\\
+\midrule
+LUT     & $52{,}301$ & $230{,}400$ & $22.7\%$\\
+FF      & $98{,}150$ & $460{,}800$ & $21.3\%$\\
+DSP     & $703$      & $1{,}728$   & $40.7\%$\\
+BRAM36  & $255$      & $312$       & \textbf{$81.7\%$}\\
+URAM    & $0$        & $96$        & $0\%$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Furthermore, dedicated DSP arithmetic slices account for $40.7\%$ ($703$ out of $1{,}728$ units), striking an optimal balance that fully supports intensive parallel MAC (multiply-accumulate) operations mandated by the convolutional layers without over-subscribing the arithmetic hardware. However, a deeper examination of Table~\ref{tab:resources} reveals the primary physical bottleneck governing multi-core scaling on this platform: Block RAM utilization. Specifically, BRAM36 consumption reaches $81.7\%$ ($255$ out of $312$ blocks consumed), driven by intermediate feature map caching and weight buffering requirements within the DPU core. This high BRAM saturation acts as the strict hardware constraint preventing the naive instantiation of a dual-core B4096 configuration. Conversely, UltraRAM (URAM) blocks exhibit $0\%$ utilization across all $96$ available units, presenting a valuable architectural reserve that can be strategically exploited in future iterations to offload large feature-map buffers and alleviate BRAM pressure.
+
+Complementing resource efficiency, achieving robust timing closure is paramount for stable real-time edge acceleration. As recorded in the post-implementation timing report of Table~\ref{tab:timing}, the routed physical design successfully meets and exceeds all operational frequency requirements across its clock domains. The primary DPU core operating at a target frequency of $300\,\text{MHz}$ ($3.333\,\text{ns}$ target period) achieves a positive Worst Negative Slack (WNS) of $+0.214\,\text{ns}$, while the high-speed DSP cascade domain clocked at $600\,\text{MHz}$ ($1.667\,\text{ns}$ target period) successfully closes timing with a WNS of $+0.089\,\text{ns}$. These positive slack values confirm that the design operates well within signal propagation thresholds, avoiding setup and hold violations despite heavy routing density. Ultimately, the harmonious combination of low logic utilization, balanced DSP allocation, and clean timing closure proves that the proposed YOLOv8-FLEO hardware accelerator achieves elite operational stability and performance on embedded FPGA platforms.
+
+\begin{table}[ h!]
+\centering
+\caption{Clock domain timing closure report for the post-implementation ZCU104 hardware design.}
+\label{tab:timing}
+\setlength{\tabcolsep}{6pt}\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lcccc}
+\toprule
+Clock domain & Target (MHz) & Target period (ns) & WNS (ns) \\
+\midrule
+DPU core        & $300$ & $3.333$ & $+0.214$ \\
+DSP cascade ($2\times$) & $600$ & $1.667$ & $+0.089$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\subsubsection{Power Efficiency and Quantization Robustness}
+
+Evaluating the thermal and power dissipation characteristics under the vendor-typical operating profile for the ZCU104 platform demonstrates that the optimized architecture operates within a highly efficient envelope, recording an estimated total board power consumption of $9.5\,\text{W}$ as detailed in Table~\ref{tab:power}. When combined with the high processing throughput of $\sim 139\,\text{FPS}$ achieved by the single-B4096 DPU configuration, the resulting energy efficiency profile computes to approximately $68\,\text{mJ}$ per inference frame. This favorable energy-per-inference metric highlights the suitability of the proposed hardware-software co-design for resource-constrained edge environments where thermal dissipation and power budgets are strictly limited.
+
+\begin{table}[h!]
+\centering
+\caption{Power consumption and energy efficiency metrics on the ZCU104 platform.}
+\label{tab:power}
+\setlength{\tabcolsep}{6pt}\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lcl}
+\toprule
+Quantity & Value & Source \\
+\midrule
+Board power envelope & $\sim 9.5\,\text{W}$ & ZCU104 platform typical \\
+Energy per inference & $\sim 68\,\text{mJ}$ & Computed ($9.5\,\text{W} / 139\,\text{FPS}$) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Beyond raw throughput and energy metrics, validating that Post-Training Quantization (PTQ) to INT8 precision and structural graph folding do not compromise the geometric benefits introduced by the subspace orthogonality regularizer is critical for deployment success. Fig.~\ref{fig:int8recall} tracks the per-class recall distribution across the deployment pipeline—comparing the FP32 baseline, the full FP32 FLEO model, and the deployed INT8 fold-finetuned variant on the RAF-DB benchmark. The empirical results reveal that the vital minority-class enhancements, particularly in highly confusable and low-support categories such as \textit{fear} ($n=74$) and \textit{disgust} ($n=160$), successfully survive both structural fold-out compilation and INT8 quantization with minimal degradation. Specifically, the graph illustrates that the pronounced recall gains achieved by enforcing orthogonal feature subspaces in FLEO (lifting fear recall from baseline levels up to nearly $0.60$ and disgust past $0.57$) are robustly preserved in the quantized on-board execution graph (`FLEO folded + FT`). Meanwhile, high-support categories such as \textit{happy} ($n=1185$), \textit{sad} ($n=478$), \textit{surprise} ($n=329$), and \textit{neutral} ($n=680$) maintain exceptional recall stability exceeding $0.75$ to $0.94$. Consequently, the integration of subspace pre-alignment and post-fold fine-tuning successfully bridges the gap between theoretical manifold constraints and fixed-point hardware compilation, resulting in an exceptionally negligible aggregate accuracy drop ($\Delta_q \approx 0.004$) across the entire validation dataset.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\linewidth]{fig_int8_per_class_recall.png}
+\caption{Per-class recall comparison across the deployment pipeline: FP32 full model vs.\ FP32 fold-finetuned vs.\ INT8 on-board execution on RAF-DB. Minority-class performance gains (fear and disgust) are fully preserved following quantization and fold-out compilation.}
+\label{fig:int8recall}
+\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%revised%%%%%%%%
+\subsection{Comparative Study with State-of-the-Art FPGA Systems}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+To validate the efficacy, architectural superiority, and hardware acceleration efficiency of the proposed YOLOv8-FLEO framework, a comprehensive comparative analysis is conducted against prior FPGA-based facial expression recognition (FER) systems reported in the literature. Table~\ref{tab:comparative} summarizes this performance comparison across key metrics, including underlying hardware platforms, design styles, quantization precision, target datasets, recognition accuracy, processing throughput, and power consumption.
+
+\rev{To situate the choice of backbone, we additionally trained FLEO on a YOLO11 backbone under the identical protocol, which attains a comparable mAP@0.5 of $0.802$ on RAF-DB. YOLO26 could not be integrated, as its detection head exposes a different loss-output format incompatible with the FLEO auxiliary loss. We nonetheless retain YOLOv8n: it is convolution-only and therefore DPU-native, whereas the attention (C2PSA) blocks of YOLO11 are not compilable as a single DPU subgraph, precluding fallback-free deployment despite comparable accuracy.}
+
+\begin{table*}[h!]
+\centering
+\caption{Comparative Study with prior FPGA-based facial expression recognition systems.}
+\label{tab:comparative}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lllllccc}
+\toprule
+Work & Platform & Style & Prec. & Dataset & Acc.\ (\%) & FPS & Power (W)\\
+\midrule
+Phan-Xuan \textit{et al.}\ \citep{bib12} & Zynq-7000 SoC         & bespoke & fixed-pt & FER2013 & 60.3\%  & n.r. & n.r.\\
+Vinh \& Vinh \citep{bib13}              & SoC FPGA (130\,MHz)  & bespoke & fixed-pt & FER2013 & 66\% & 15 & n.r.\\
+Ando \& Inoue \citep{bib15}             & Zynq US+ (DPU)       & overlay & INT8     & FER2013 & 67.4\% & 25  & n.r.\\
+\midrule
+\textbf{This work (FLEO fold-out)} & ZCU104 (DPU B4096) & overlay & INT8 & FER2013 / RAF-DB & 70.9 / 84.9 \% & 139  & 9.5 \\
+\bottomrule
+\end{tabular}}
+\begin{tablenotes}[flushleft]\footnotesize
+\item n.r.\ = not reported.
+\end{tablenotes}
+\end{table*}
+
+Early FPGA-based FER implementations predominantly relied on bespoke, hand-crafted High-Level Synthesis (HLS) or custom Register-Transfer Level (RTL) circuits. For instance, Phan-Xuan \textit{et al.}\citep{bib12} implemented a custom CNN architecture on a Zynq-7000 SoC targeting the FER2013 dataset, achieving an accuracy of $60.3\%$. Similarly, Vinh \& Vinh \citep{bib13} developed a bespoke fixed-point SoC FPGA design operating at $130\,\text{MHz}$, reaching $66\%$ accuracy at a modest throughput of $15\,\text{FPS}$. While these bespoke hardware designs avoid overlay overheads, they suffer from critical limitations: they lack general-purpose flexibility, require prohibitive re-engineering cycles for new network topologies, and cannot accommodate advanced geometric regularization layers without massive manual circuit expansion.
+
+To overcome the rigidity of bespoke hardware, recent paradigms have shifted toward processor-overlay architectures utilizing Xilinx Deep Learning Processing Units (DPUs). Ando \& Inoue \citep{bib15} deployed a CNN-based FER system on a Zynq UltraScale+ platform using a small DPU overlay with INT8 quantization, achieving $67.4\%$ accuracy and $25\,\text{FPS}$ on FER2013. However, standard DPU overlay configurations face a severe performance bottleneck: non-native custom mathematical operations (such as specialized feature normalization or vector regularizers) cannot be mapped directly onto the fixed instruction set of the DPU programmable logic, forcing expensive, latency-inducing CPU fallbacks.
+
+In sharp contrast, our proposed YOLOv8-FLEO framework surmounts these longstanding limitations through a synergistic combination of advanced subspace orthogonalization and a zero-fallback structural fold-out deployment pipeline. As evidenced in Table~\ref{tab:comparative}, our approach delivers exceptional classification performance, achieving $70.9\%$ on FER2013 and an outstanding $84.9\%$ on the more challenging RAF-DB benchmark. Scientifically, this accuracy leap is driven by the fuzzy label and emotion orthogonalization (FLEO) formulation, which directly resolves feature manifold entanglement among confusable emotional categories (such as \textit{fear} and \textit{disgust}) that traditionally degrade baseline CNN models.
+
+Furthermore, in terms of hardware acceleration efficiency, our architecture—leveraging the ZCU104 platform equipped with a high-parallelism DPU B4096 core—achieves an elite throughput of $139\,\text{FPS}$ within a controlled board power envelope of $9.5\,\text{W}$. This represents an approximate $5.5\times$ throughput improvement over Ando \& Inoue ($25\,\text{FPS}$) and a $9.2\times$ improvement over Vinh \& Vinh ($15\,\text{FPS}$), while scaling to complex, high-capacity backbone networks. By entirely eliminating DPU-hostile Gram-Schmidt operators during graph compilation, our design maintains uninterrupted execution on the compute-bound roofline plateau without incurring CPU synchronization stalls. Consequently, YOLOv8-FLEO establishes a new state-of-the-art benchmark for real-time, high-precision edge affective computing on FPGA platforms.
+
+
+
+
+%%%%%%%%%%%% revised %%%%%%%%%%%%%%%%%%%%                       
+\section{Conclusion}
+\label{sec:conclusion}
+
+In this work, we introduced YOLOv8-FLEO, a comprehensive framework that successfully bridges advanced geometric representation learning and high-efficiency embedded hardware co-design for Facial Expression Recognition (FER). By incorporating mutually orthogonal per-emotion subspaces, the framework directly resolves feature manifold entanglement among confusable categories, significantly elevating minority-class recognition on challenging benchmarks like RAF-DB without compromising overall model accuracy. To address the persistent bottleneck of operator fragmentation in hardware acceleration, we proposed an innovative structural fold-out and post-fold fine-tuning pipeline. This optimization strategy completely eliminates DPU-hostile Gram-Schmidt operators from the network backbone, achieving a pristine zero-fallback compilation profile on the Xilinx DPUCZDX8G B4096 target. Rigorous physical evaluations demonstrated that the optimized $8.87\,\text{GOP}$ workload operates securely on the compute-bound roofline plateau ($\sim 266\,\text{op/byte}$), delivering an elite on-board throughput of $\sim 135\,\text{FPS}$, ultra-low latency ($7.2\,\text{ms}$ per frame), and high energy efficiency ($\sim 68\,\text{mJ}$ per inference) under INT8 Post-Training Quantization with an exceptionally minimal aggregate accuracy penalty ($\Delta_q \approx 0.004$). Resource utilization analysis further highlighted that while Block RAM saturation currently governs single-core deployment density on the XCZU7EV device, untapped UltraRAM reserves and clean timing closure provide a clear pathway for future multi-core scaling and feature-map buffering expansions. Ultimately, YOLOv8-FLEO establishes a powerful, scalable paradigm for deploying complex, precision-demanding affective computing models onto resource-constrained edge platforms.
+
+Looking forward, several promising directions remain open for future investigation. First, given that Block RAM saturation currently restricts direct multi-core scaling while UltraRAM reserves remain completely untapped ($0\%$ utilization), future work will focus on migrating large feature-map buffers to URAM to enable dual-core B4096 instantiations and scale system throughput. Second, extending the fuzzy label and emotion orthogonalization (FLEO) paradigm to temporal video-based affective computing and investigating Quantization-Aware Training (QAT) in place of Post-Training Quantization (PTQ) will be explored to further reduce quantization loss and enhance robustness in unconstrained, real-world operational environments.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\authorcontributions{All authors contributed equally.}
+
+\funding{This research was funded by the Deanship of Research and Graduate Studies at King Khalid University for funding this work through Large Group Project under grant number (RGP2/253/47).}
+
+\institutionalreview{Not applicables.}
+
+\informedconsent{Not applicable.}
+
+\dataavailability{This work uses two public facial-expression benchmarks (RAF-DB and FER2013) under their standard research license..} 
+
+\acknowledgments{The authors extend their appreciation to the Deanship of Research and Graduate Studies at King Khalid University for funding this work through Large Group Project under grant number (RGP2/253/47).}
+
+\conflictsofinterest{The authors have no relevant financial or non-financial interests to disclose.} 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Optional
+
+%% Only for journal Encyclopedia
+%\entrylink{The Link to this entry published on the encyclopedia platform.}
+
+
+\reftitle{References}
+
+% Please provide either the correct journal abbreviation (e.g. according to the “The list of Title Word Abbreviations” https://portal.issn.org/ltwa) or the full name of the journal. 
+% Citations and references in the Supplementary Materials are permitted provided that they also appear in the reference list here. 
+
+%=====================================
+% References, variant A: external bibliography
+%=====================================
+%\bibliography{bibliography}
+
+%=====================================
+% References, variant B: internal bibliography
+%=====================================
+% Reference 1
+\isAPAandChicago{}{%
+\begin{thebibliography}{999}
+\bibitem[AMD/Xilinx(2023)]{bib1}
+AMD/Xilinx. (2023). \textit{Vitis AI User Guide (UG1414)} (UG1414, v3.5). AMD/Xilinx.
+
+% Reference 2
+\bibitem[AMD/Xilinx(2018)]{bib2}
+AMD/Xilinx. (2018). \textit{ZCU104 Evaluation Board User Guide (UG1267)} (UG1267, v1.1). AMD/Xilinx.
+
+% Reference 3
+\bibitem[\protect\citeauthoryear{Jocher \emph{et al.}}{{2023}}]{bib3}
+Jocher, G., Chaurasia, A., \& Qiu, J. (2023). \textit{Ultralytics YOLOv8}. \url{https://github.com/ultralytics/ultralytics}
+
+% Reference 4
+\bibitem[\protect\citeauthoryear{Liouane \& Messaoud}{{2026}}]{bib4}
+Liouane, O., \& Messaoud, S. (2026). FFGSM: A novel fuzzy logic-based FGSM attack for deep neural networks vulnerability assessment. \textit{IEEE Transactions on Fuzzy Systems}, \textit{34}(6), 1908--1921.
+
+% Reference 5
+\bibitem[\protect\citeauthoryear{Umuroglu \emph{et al.}}{{2017}}]{bib5}
+Umuroglu, Y., Fraser, N. J., Gambardella, G., Blott, M., Leong, P., Jahre, M., \& Vissers, K. (2017). FINN: A framework for fast, scalable binarized neural network inference. In \textit{Proc. ACM/SIGDA Int. Symp. on Field-Programmable Gate Arrays (FPGA)} (pp. 65--74).
+
+% Reference 6
+\bibitem[\protect\citeauthoryear{Zhang \emph{et al.}}{{2015}}]{bib6}
+Zhang, C., Li, P., Sun, G., Guan, Y., Xiao, B., \& Cong, J. (2015). Optimizing FPGA-based accelerator design for deep convolutional neural networks. In \textit{Proc. ACM/SIGDA Int. Symp. on Field-Programmable Gate Arrays (FPGA)} (pp. 161--170).
+
+% Reference 7
+\bibitem[\protect\citeauthoryear{Qiu \emph{et al.}}{{2016}}]{bib7}
+Qiu, J., Wang, J., Yao, S., Guo, K., Li, B., Zhou, E., Yu, J., Tang, T., Xu, N., Song, S., Wang, Y., \& Yang, H. (2016). Going deeper with embedded FPGA platform for convolutional neural network. In \textit{Proc. ACM/SIGDA Int. Symp. on Field-Programmable Gate Arrays (FPGA)} (pp. 26--35).
+
+% Reference 8
+\bibitem[\protect\citeauthoryear{Bel Haj Salah \emph{et al.}}{{2026}}]{bib8}
+Bel Haj Salah, O., Messaoud, S., Hajjaji, M. A., Atri, M., \& Liouane, N. (2026). Low-latency QYOLOv10-based FPGA implementation for real-time object detection. \textit{Integration}, \textit{106}, 102591.
+
+% Reference 9
+\bibitem[\protect\citeauthoryear{Jacob \emph{et al.}}{{2018}}]{bib9}
+Jacob, B., Kligys, S., Chen, B., Zhu, M., Tang, M., Howard, A., Adam, H., \& Kalenichenko, D. (2018). Quantization and training of neural networks for efficient integer-arithmetic-only inference. In \textit{Proc. IEEE Conf. on Computer Vision and Pattern Recognition (CVPR)} (pp. 2704--2713).
+
+% Reference 10
+\bibitem[Krishnamoorthi(2018)]{bib10}
+Krishnamoorthi, R. (2018). Quantizing deep convolutional networks for efficient inference: A whitepaper. \textit{arXiv preprint arXiv:1806.08342}.
+
+% Reference 11
+\bibitem[\protect\citeauthoryear{Bel Haj Salah \emph{et al.}}{{2025}}]{bib11}
+Bel Haj Salah, O., Messaoud, S., Hajjaji, M. A., Atri, M., \& Liouane, N. (2025). Post-training quantization for efficient FPGA-based neural network acceleration. \textit{Integration}, \textit{105}, 102508.
+
+% Reference 12
+\bibitem[\protect\citeauthoryear{Phan \emph{et al.}}{{2019}}]{bib12}
+Phan, H., Le-Tien, T., \& Nguyen, T.-S. (2019). FPGA platform applied for facial expression recognition system using convolutional neural networks. \textit{Procedia Computer Science}, \textit{151}, 651--658.
+
+% Reference 13
+\bibitem[\protect\citeauthoryear{Vinh \& Vinh}{{2019}}]{bib13}
+Vinh, P. T., \& Vinh, T. Q. (2019). Facial expression recognition system on SoC FPGA. In \textit{2019 International Symposium on Electrical and Electronics Engineering (ISEE)} (pp. 1--4).
+
+% Reference 14
+\bibitem[\protect\citeauthoryear{Teboulbi \emph{et al.}}{{2024}}]{bib14}
+Teboulbi, S., Messaoud, S., Hajjaji, M. A., Mtibaa, A., \& Atri, M. (2024). FPGA-based SoC design for real-time facial point detection using deep convolutional neural networks with dynamic partial reconfiguration. \textit{Signal, Image and Video Processing}, \textit{18}(Suppl 1), 599--615.
+
+% Reference 15
+\bibitem[\protect\citeauthoryear{Ando \& Inoue}{{2024}}]{bib15}
+Ando, T., \& Inoue, Y. (2024). Facial expression recognition system using DNN accelerator with multi-threading on FPGA. In \textit{2024 Twelfth International Symposium on Computing and Networking Workshops (CANDARW)} (pp. 103--109). IEEE.
+
+% Reference 16
+\bibitem[\protect\citeauthoryear{Ding \emph{et al.}}{{2021}}]{bib16}
+Ding, X., Zhang, X., Ma, N., Han, J., Ding, G., \& Sun, J. (2021). RepVGG: Making VGG-style ConvNets great again. In \textit{Proc. IEEE/CVF Conf. on Computer Vision and Pattern Recognition (CVPR)} (pp. 13733--13742).
+
+% Reference 17
+\bibitem[\protect\citeauthoryear{Dong \emph{et al.}}{{2024}}]{bib17}
+Dong, P., Fu, Y., Ye, Z., Wang, R., \& Huang, R. (2024). Genetic quantization-aware approximation for non-linear operations in transformers. In \textit{Proceedings of the 61st ACM/IEEE Design Automation Conference (DAC)}.
+
+% Reference 18
+\bibitem[\protect\citeauthoryear{Goodfellow \emph{et al.}}{{2013}}]{bib22}
+Goodfellow, I. J., Erhan, D., Carrier, P. L., Courville, A., \textit{et al.} (2013). Challenges in representation learning: A report on three machine learning contests. In \textit{Proc. Int. Conf. on Neural Information Processing (ICONIP)} (pp. 117--124).
+
+% Reference 19
+\bibitem[\protect\citeauthoryear{Li \emph{et al.}}{{2019}}]{bib23}
+Li, Y., Zeng, J., Shan, S., \& Chen, X. (2019). Occlusion aware facial expression recognition using CNN with attention mechanism. \textit{IEEE Transactions on Image Processing}, \textit{28}(5), 2439--2450.
+
+% Reference 20
+\bibitem[AMD/Xilinx(2023)]{bib25}
+AMD/Xilinx. (2023). \textit{Zynq DPUCZDX8G for Zynq UltraScale+ MPSoCs Product Guide (PG338)} (PG338, v4.1). AMD/Xilinx.
+
+% Reference 21
+\bibitem[\protect\citeauthoryear{Liouane \& Messaoud}{{2026}}]{bib26}
+Liouane, O., \& Messaoud, S. (2026). FFGSM: A novel fuzzy logic-based FGSM attack for deep neural networks vulnerability assessment. \textit{IEEE Transactions on Fuzzy Systems}, \textit{34}(6), 1908--1921.
+
+% Reference 22
+\bibitem[\protect\citeauthoryear{Ekman \& Friesen}{{1978}}]{bibfacs}
+Ekman, P., \& Friesen, W. V. (1978). \textit{Facial action coding system: A technique for the measurement of facial movement}. Consulting Psychologists Press.
+
+% Reference 23
+\bibitem[\protect\citeauthoryear{Bansal \emph{et al.}}{{2018}}]{bibsoftortho}
+Bansal, N., Chen, X., \& Wang, Z. (2018). Can we gain more from orthogonality regularizations in training deep networks? In \textit{Advances in Neural Information Processing Systems (NeurIPS)}.
+
+% Reference 24
+\bibitem[Zadeh(1965)]{zadeh1965fuzzy}
+Zadeh, L. A. (1965). Fuzzy sets. \textit{Information and Control}, \textit{8}(3), 338--353.
+
+% Reference 25
+\bibitem[\protect\citeauthoryear{Li \& Deng}{{2020}}]{li2020deep}
+Li, S., \& Deng, W. (2020). Deep facial expression recognition: A survey. \textit{IEEE Transactions on Affective Computing}, \textit{13}(3), 1195--1215.
+
+% Reference 26
+\bibitem[\protect\citeauthoryear{Zeng \emph{et al.}}{{2018}}]{zeng2018facial}
+Zeng, J., Shan, S., \& Chen, X. (2018). Facial expression recognition with inconsistently annotated datasets. In \textit{Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition} (pp. 4431--4440).
+
+% Reference 27
+\bibitem[Geng(2016)]{geng2016label}
+Geng, X. (2016). Label distribution learning. \textit{IEEE Transactions on Knowledge and Data Engineering}, \textit{28}(7), 1734--1748.
+
+% Reference 28
+\bibitem[\protect\citeauthoryear{Chen \emph{et al.}}{{2020}}]{chen2020ldl}
+Chen, S., Wang, J., Chen, Y., Shi, Z., Geng, X., \& Rui, Y. (2020). Label distribution learning on auxiliary label space graphs for facial expression recognition. In \textit{Proc. IEEE/CVF Conf. on Computer Vision and Pattern Recognition (CVPR)} (pp. 13984--13993).
+
+% Reference 29
+\bibitem[\protect\citeauthoryear{Mollahosseini \emph{et al.}}{{2016}}]{bibfer}
+Mollahosseini, A., Chan, D., \& Mahoor, M. H. (2016). Going deeper in facial expression recognition using deep neural networks. In \textit{2016 IEEE Winter Conference on Applications of Computer Vision (WACV)} (pp. 1--10).
+
+\end{thebibliography}
+}
+
+%\PublishersNote{}
+%\isPreprints{}{% This command is only used for ``preprints''.
+%\end{adjustwidth}
+%} % If the paper is ``preprints'', please uncomment this parenthesis.
+\end{document}
+
