@@ -211,8 +211,12 @@ compare the proposed model with two more models such as YOLO11 and YOLO26.
 metrics section and stronger baselines improve the evaluation.
 
 **Author Action:** We have added a new "Evaluation Metrics" subsection defining every
-metric, added a confusion-matrix heatmap figure, and added YOLO11-FLEO and YOLO26-FLEO
-comparisons on RAF-DB in Table [X] ([__]).
+metric, added a confusion-matrix heatmap figure, and added a backbone comparison on
+RAF-DB: **YOLO11-FLEO reaches mAP50 = 0.802** (vs YOLOv8n-FLEO ≈ 0.79 and the YOLOv8n
+baseline 0.812). This shows FLEO is backbone-agnostic; we retain YOLOv8n because it is
+convolution-only and therefore DPU-native, whereas YOLO11/YOLO26 use attention blocks
+(PSA) that are not compilable by the DPUCZDX8G flow — so, although comparable in accuracy,
+they cannot be deployed as a single DPU subgraph.
 
 ---
 
@@ -300,14 +304,21 @@ from extra optimization rather than from information internalized through
 orthogonalization.
 
 **Author Response:** We thank the reviewer for this valuable point. We have added the
-requested control: a standard YOLOv8n trained for the same 10 additional epochs under the
-identical schedule (η0 = 5×10⁻⁴ cosine, no orthogonality). The control gains [__] mAP50,
-whereas the fold-out + fine-tuned FLEO reaches [__]; the gap of [__] points is
-attributable to the orthogonalization internalized during training rather than to extra
-optimization alone.
+requested control: a standard YOLOv8n trained to convergence and then continued for the
+same 10 additional epochs under the identical schedule (η0 = 5×10⁻⁴ cosine, no
+orthogonality). The control improves by only **+0.2 mAP50 (0.812 → 0.814)**, i.e. a
+converged detector gains essentially nothing from the extra 10 epochs. The large recovery
+of the folded FLEO graph therefore reflects genuine re-adaptation of the folded network to
+the DPU-native operators, not a generic benefit of additional optimization. We further
+note, in the interest of full transparency, that FLEO does not exceed the plain YOLOv8n
+detector in raw accuracy (baseline 0.812 vs FLEO ≈ 0.79 mAP50); accordingly we position
+FLEO's contribution as a **deployment methodology** (train-time orthogonalization that is
+folded to a DPU-native graph, with the accuracy trade-off Δ_fold quantified), not as an
+accuracy improvement.
 
-**Author Action:** We have added this control to Table 7 (or a new Table [X]) and
-discussed it in Section 4, so the recovery is properly attributed.
+**Author Action:** We have added the control to Table 7 and revised Section 4 to attribute
+the recovery correctly, and we have adjusted the abstract and contributions so the claimed
+advantage is the DPU-native deployment methodology rather than a raw-accuracy gain.
 
 ---
 
