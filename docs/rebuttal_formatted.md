@@ -213,10 +213,12 @@ metrics section and stronger baselines improve the evaluation.
 **Author Action:** We have added a new "Evaluation Metrics" subsection defining every
 metric, added a confusion-matrix heatmap figure, and added a backbone comparison on
 RAF-DB: **YOLO11-FLEO reaches mAP50 = 0.802** (vs YOLOv8n-FLEO ≈ 0.79 and the YOLOv8n
-baseline 0.812). This shows FLEO is backbone-agnostic; we retain YOLOv8n because it is
-convolution-only and therefore DPU-native, whereas YOLO11/YOLO26 use attention blocks
-(PSA) that are not compilable by the DPUCZDX8G flow — so, although comparable in accuracy,
-they cannot be deployed as a single DPU subgraph.
+baseline 0.812). YOLO26 could not be integrated in our toolchain (its detection head uses
+a different loss-output format incompatible with the FLEO auxiliary loss), which we state
+explicitly. The comparison shows FLEO is backbone-agnostic and that YOLOv8n remains the
+preferred choice: it is convolution-only and therefore DPU-native, whereas YOLO11 uses
+attention (C2PSA) blocks that are not compilable as a single DPUCZDX8G subgraph — so,
+although comparable in accuracy, YOLO11 cannot be deployed as a single DPU subgraph.
 
 ---
 
