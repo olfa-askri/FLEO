@@ -147,6 +147,37 @@ PyTorch docker for quantization/compile — see `deploy/` and `README.md`.
 
 ---
 
+## 6. Grad-CAM face heatmaps (review Comment 2.9)
+
+Produce the qualitative "where does the model look?" figure — a **real**
+class-activation map from your trained weights, overlaid on faces. The CAM is
+taken on the **FLEO neck feature maps (P3/P4)** that feed the Detect head, and
+the scored scalar is the head's confidence for the target emotion (the same
+top-1 rule as `scripts.evaluate`), so the heatmap reflects what the
+FLEO-augmented neck attends to.
+
+```python
+# One face per emotion, sampled from the prepared FER2013 val split:
+!python -m scripts.gradcam \
+    --weights runs/fleo/fleo_seed0/weights/best.pt \
+    --data datasets/fer2013/data.yaml \
+    --imgsz 160 --out results/gradcam
+
+# ...or point it at specific face images:
+!python -m scripts.gradcam --weights runs/fleo/fleo_seed0/weights/best.pt \
+    --images /kaggle/input/fer2013/test/happy/im0.png --out results/gradcam
+```
+
+Writes `results/gradcam/gradcam_faces.png` (grid: input | overlay) plus one
+overlay per face. Useful flags: `--layer {p3,p4,both}` (which neck site),
+`--method {gradcam,eigencam}` (`eigencam` is a gradient-free fallback),
+`--target-class angry|happy|...` (force the scored emotion), `--num N`,
+`--route full` (the trained Gram-Schmidt graph; use `folded` to see the R1
+deployment graph's attention). Add `results/gradcam` to the artifact zip in
+step 5 to download it.
+
+---
+
 ## Tips & gotchas
 
 - **Device**: use `--device 0`. If you picked T4 ×2, still use `--device 0`
