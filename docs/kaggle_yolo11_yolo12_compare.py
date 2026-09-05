@@ -62,8 +62,23 @@ for label, weights in MODELS.items():
         # évaluation sur le split val/test défini dans data.yaml
         m = model.val(project=OUT, name=name + "_val", exist_ok=True)
 
+        # --- Accuracy top-1 (detection-cast: 1 objet plein cadre par image) ---
+        # calculée depuis la matrice de confusion d'Ultralytics.
+        # cm est (nc+1)x(nc+1) : lignes = prédit, colonnes = vrai (+ background).
+        acc = None
+        try:
+            import numpy as np
+            cm = np.array(m.confusion_matrix.matrix, dtype=float)
+            ncl = len(CLASSES)
+            correct = np.trace(cm[:ncl, :ncl])        # bien classés (diagonale)
+            true_total = cm[:, :ncl].sum()            # toutes les vraies instances
+            acc = round(float(correct / true_total), 4) if true_total > 0 else None
+        except Exception as e:
+            print("accuracy non calculable:", e)
+
         row = {
             "Model":        label,
+            "Accuracy":     acc,
             "mAP@0.5":      round(float(m.box.map50), 4),
             "mAP@0.5:0.95": round(float(m.box.map),   4),
             "precision":    round(float(m.box.mp),    4),
