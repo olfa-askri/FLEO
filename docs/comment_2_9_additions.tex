@@ -71,20 +71,21 @@ disgust $+0.076$).}
 \begin{table}[h!]
 \centering
 \caption{Backbone comparison under the FLEO framework on RAF-DB (matched training
-recipe). YOLOv8n is retained because it is convolution-only and fully DPU-native;
-attention-based backbones require partial CPU fallback.}
+recipe). YOLOv8n is retained because it is convolution-only and fully DPU-native,
+whereas YOLO11's attention (C2PSA) blocks are not compilable as a single DPU
+subgraph. YOLO26 is not a publicly released architecture at the time of writing.}
 \label{tab:backbonecmp}
 \setlength{\tabcolsep}{6pt}\renewcommand{\arraystretch}{1.2}
-\begin{tabular}{lcccc}
+\begin{tabular}{lccc}
 \toprule
-Backbone (+FLEO) & mAP@0.5 & macro-$F_1$ & DPU-native? & Note \\
+Backbone (+FLEO) & mAP@0.5 & mAP@0.5:0.95 & DPU-native? \\
 \midrule
-YOLOv8n (ours)   & \textbf{0.817} & \textbf{0.815} & Yes & convolution-only \\
-YOLO11n          & 0.802 & 0.799 & No  & C2PSA attention $\to$ PS fallback \\
-YOLO26n          & --    & --    & --  & head loss-output format incompatible \\
+\textbf{YOLOv8-FLEO (proposed)} & \textbf{0.817} & \textbf{TODO} & Yes \\
+YOLO11-FLEO                      & 0.802 & 0.747 & No (C2PSA attention) \\
+YOLO26-FLEO                      & --    & --    & n/a (not released) \\
 \bottomrule
 \end{tabular}
 \end{table}
 }
-% NB YOLO26 : si tu ne peux pas l'intégrer, garde "--" et explique-le (déjà fait
-% dans la phrase \rev de §4.4). Si tu PEUX l'entraîner, remplis la ligne.
+% NB mAP@0.5:0.95 du proposed (0.803) : vérifie-le dans results.csv de ta run
+% YOLOv8-FLEO (metrics/mAP50-95(B)). Sinon, mets la valeur exacte de ta run.
