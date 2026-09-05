@@ -225,9 +225,13 @@ DPU-hostile Gram--Schmidt operator, and (ii)~a short \emph{post-fold fine-tuning
 no orthogonality) lets the remaining DPU-native convolutions re-absorb the function
 Gram--Schmidt was performing (recovering to $0.849$). The benefit is thus internalized into
 the weights by fine-tuning, not ``already free''. We corrected the wording accordingly.
-\action We rewrote Section~3.1.3 and the abstract to describe the mechanism as ``fold-out
-followed by post-fold fine-tuning'', and annotated Table~7 to make the two-step recovery
-explicit.
+\action We revised the wording in Section~3.1.3 (Training Process and Loss Formulation),
+Section~3.2.2 (Export-Time Graph Rewrite and Fold-Out Mechanics), and the abstract to describe
+the mechanism as a two-step ``fold-out followed by post-fold fine-tuning'' process and to state
+explicitly that Gram--Schmidt is load-bearing at inference. In Section~3.2.2 we also corrected
+the reported fold-out figures ($\Delta_{\mathrm{fold}}=0.785$ before and $0.009$ after
+fine-tuning, expressed in accuracy rather than per-cent), and the two-step recovery is made
+explicit alongside Table~7.
 
 \comment{3.3} The authors may refer to some current works
 [four suggested references].
