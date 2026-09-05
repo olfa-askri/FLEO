@@ -451,13 +451,13 @@ thereby purging all non-native arithmetic instructions from the execution graph 
   \label{fig:rewrite2}
 \end{figure}
 
-Although the application of rewrite operator $\mathcal{R}$ successfully guarantees continuous single-subgraph DPU execution without CPU interruptions, removing the explicit orthogonalization constraint post-training induces a minor structural perturbation within the feature manifold. To rigorously quantify this performance penalty prior to hardware compilation, we define the fold-out accuracy degradation metric $\Delta_{\mathrm{fold}}$, measured comprehensively under both full-precision FP32 and quantized INT8 execution modes as the Eq. \eqref{eq:deltafold}.
+Although the application of rewrite operator $\mathcal{R}$ successfully guarantees continuous single-subgraph DPU execution without CPU interruptions, removing the explicit orthogonalization operator post-training severely disrupts the trained forward path---RAF-DB accuracy collapses from $0.858$ to $0.073$ (Table~\ref{tab:accuracy})---because the trained weights were fitted with Gram--Schmidt applied at every forward pass. To rigorously quantify this performance penalty prior to hardware compilation, we define the fold-out accuracy degradation metric $\Delta_{\mathrm{fold}}$, measured comprehensively under both full-precision FP32 and quantized INT8 execution modes as the Eq. \eqref{eq:deltafold}.
 \begin{equation}
 \Delta_{\mathrm{fold}} = \mathrm{Acc}\big(\text{full graph, Eq.~\eqref{eq:full}}\big)
 - \mathrm{Acc}\big(\text{folded graph, Eq.~\eqref{eq:folded}}\big).
 \label{eq:deltafold}
 \end{equation}
-Because the feature representations have already internalized orthogonal properties during the multi-task training stage, this performance drop is inherently localized. To fully recover from this structural perturbation and realign the downstream convolutional filters, a lightweight fold-finetuning phase (Alg.~\ref{alg:foldout1}, line~\ref{alg:ft}) is executed over a concise duration of $T=10$ epochs on the operator-free graph. This targeted optimization step successfully closes the accuracy gap $\Delta_{\mathrm{fold}}$ from an initial degradation of $0.785\%$ down to a negligible residual of $0.009\%$, ensuring that hardware acceleration is achieved with zero compromise in recognition accuracy.
+Crucially, because the feature manifold was pre-aligned during multi-task training, this collapse is \emph{recoverable at low cost}: a lightweight fold-finetuning phase (Alg.~\ref{alg:foldout1}, line~\ref{alg:ft}) of $T=10$ epochs on the operator-free graph re-optimizes the downstream convolutions so they re-absorb the orthogonalization, reducing the fold-out penalty from an initial $\Delta_{\mathrm{fold}}=0.785$ in accuracy ($0.858\!\rightarrow\!0.073$) to a negligible residual $\Delta_{\mathrm{fold}}=0.009$. The exported graph thus retains only DPU-native primitives while preserving the learned discriminative geometry.
 
 %%%%revised%%%%%
 \subsubsection{INT8 Quantization and B4096 Compilation Pipeline}\label{sec:quant}

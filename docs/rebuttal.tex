@@ -212,7 +212,13 @@ is generated algorithmically from the label, $\alpha$, and $\pi$, and is fully r
 can be folded out at inference, yet Table~7 shows that removing it collapses RAF-DB accuracy
 from $0.858$ to $0.073$. Please clarify the distinction between a training-only regularizer
 and a forward operator that remains essential until the network is fine-tuned without it.
-\response We thank the reviewer for this important observation, which is correct.
+\response We thank the reviewer for this important observation, which is correct. The
+distinction is the following: a \emph{training-only regularizer} is a \emph{loss term} (the
+orthogonality penalty, the binding KL divergence, and the fuzzy-label supervision) that shapes
+the weights during optimization and is simply dropped at inference, with no effect on the
+forward function; Gram--Schmidt, by contrast, is an \emph{operator inside the forward
+computation graph} on which the trained weights were fitted, and is therefore load-bearing at
+inference.
 Gram--Schmidt is not a no-op at inference; naively deleting it does break the forward path
 ($0.858\rightarrow0.073$). Our claim is a \emph{two-step} deployment: (i)~fold-out removes the
 DPU-hostile Gram--Schmidt operator, and (ii)~a short \emph{post-fold fine-tuning} (10 epochs,
