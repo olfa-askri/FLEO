@@ -282,6 +282,9 @@ def main():
     ap.add_argument("--method", choices=["gradcam", "eigencam"], default="gradcam")
     ap.add_argument("--layer", choices=["p3", "p4", "both"], default="both",
                     help="which FLEO neck site(s) to visualise")
+    ap.add_argument("--orient", choices=["vertical", "horizontal"], default="vertical",
+                    help="figure layout: 'vertical' (rows=faces, input|overlay) or "
+                         "'horizontal' (2 rows: faces on top, Grad-CAM below)")
     ap.add_argument("--target-class", default=None,
                     help="force the scored emotion (id or name); default = top-1")
     ap.add_argument("--alpha", type=float, default=0.45, help="overlay opacity")
@@ -338,18 +341,36 @@ def main():
         print(f"  [{i}] {os.path.basename(path):<28} true={true_name}  "
               f"pred={pred_name} ({c})  -> {ind}")
 
-    # combined grid: input | overlay, one row per face
+    # combined figure (layout chosen by --orient)
     n = len(results)
-    fig, axes = plt.subplots(n, 2, figsize=(5.2, 2.5 * n), squeeze=False)
-    for r, (disp, cam, true_name, pred_name, conf, fname) in enumerate(results):
-        axes[r, 0].imshow(disp)
-        axes[r, 0].set_title(f"input: {true_name or fname}", fontsize=9)
-        axes[r, 0].axis("off")
-        axes[r, 1].imshow(overlay(disp, cam, args.alpha))
-        c = f" ({conf:.2f})" if conf is not None else ""
-        axes[r, 1].set_title(f"{args.method} -> {pred_name}{c}", fontsize=9)
-        axes[r, 1].axis("off")
     title = f"FLEO neck {args.method} ({args.layer.upper()}) - where the detector attends"
+    if args.orient == "horizontal":
+        # 2 rows x n cols: faces on top, Grad-CAM overlays below (paper style).
+        fig, axes = plt.subplots(2, n, figsize=(2.2 * n, 4.9), squeeze=False)
+        for i, (disp, cam, true_name, pred_name, conf, fname) in enumerate(results):
+            c = f" ({conf:.2f})" if conf is not None else ""
+            axes[0, i].imshow(disp)
+            axes[0, i].set_title((f"{true_name}\n" if true_name else "") + f"{pred_name}{c}",
+                                 fontsize=9)
+            axes[1, i].imshow(overlay(disp, cam, args.alpha))
+            for ax in (axes[0, i], axes[1, i]):
+                ax.set_xticks([])
+                ax.set_yticks([])
+                for sp in ax.spines.values():
+                    sp.set_visible(False)
+        axes[0, 0].set_ylabel("input", fontsize=10)
+        axes[1, 0].set_ylabel(args.method, fontsize=10)
+    else:
+        # n rows x 2 cols: input | overlay, one face per row.
+        fig, axes = plt.subplots(n, 2, figsize=(5.2, 2.5 * n), squeeze=False)
+        for r, (disp, cam, true_name, pred_name, conf, fname) in enumerate(results):
+            axes[r, 0].imshow(disp)
+            axes[r, 0].set_title(f"input: {true_name or fname}", fontsize=9)
+            axes[r, 0].axis("off")
+            axes[r, 1].imshow(overlay(disp, cam, args.alpha))
+            c = f" ({conf:.2f})" if conf is not None else ""
+            axes[r, 1].set_title(f"{args.method} -> {pred_name}{c}", fontsize=9)
+            axes[r, 1].axis("off")
     fig.suptitle(title, fontsize=11)
     fig.tight_layout(rect=(0, 0, 1, 0.98))
     grid = os.path.join(args.out, "gradcam_faces.png")

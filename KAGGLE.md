@@ -170,6 +170,7 @@ FLEO-augmented neck attends to.
 
 Writes `results/gradcam/gradcam_faces.png` (grid: input | overlay) plus one
 overlay per face. Useful flags: `--layer {p3,p4,both}` (which neck site),
+`--orient horizontal` (paper-style figure: faces on top, Grad-CAM below),
 `--method {gradcam,eigencam}` (`eigencam` is a gradient-free fallback),
 `--target-class angry|happy|...` (force the scored emotion), `--num N`,
 `--route full` (the trained Gram-Schmidt graph; use `folded` to see the R1
