@@ -1,0 +1,90 @@
+% =====================================================================
+%  RÉPONSES AU COMMENTAIRE 2.9  (3 parties)
+%  1) Nouvelle section "Evaluation Metrics"
+%  2) Nouvelle figure heatmap  (image: fig_heatmap_perclass.png)
+%  3) Comparaison YOLO11 / YOLO26  (tableau)
+%  -> tout est en \rev{} (surligné). Colle chaque bloc à l'endroit indiqué.
+% =====================================================================
+
+
+% ---------------------------------------------------------------------
+% PARTIE 1 :  NOUVELLE SOUS-SECTION "EVALUATION METRICS"
+% À COLLER juste APRÈS \subsubsection{Evaluation Protocol and Telemetry}
+% (dans §4.1, avant "\subsection{YOLOv8-FLEO Results}")
+% ---------------------------------------------------------------------
+\rev{%
+\subsubsection{Evaluation Metrics}
+\label{sec:metrics}
+
+We report the following metrics. Let $TP$, $FP$, and $FN$ denote true positives,
+false positives, and false negatives at the operating confidence threshold.
+\emph{Precision} and \emph{Recall} are
+\begin{equation}
+P = \frac{TP}{TP+FP}, \qquad R = \frac{TP}{TP+FN},
+\end{equation}
+and the \emph{$F_1$ score} is their harmonic mean, $F_1 = 2PR/(P+R)$.
+For each emotion class $c$, the \emph{Average Precision} $\mathrm{AP}_c$ is the area
+under the precision--recall curve, and \emph{mAP@0.5} is the mean of $\mathrm{AP}_c$
+over the $K$ classes at an IoU threshold of $0.5$:
+\begin{equation}
+\mathrm{mAP@0.5} = \frac{1}{K}\sum_{c=1}^{K}\mathrm{AP}_c .
+\end{equation}
+To weight all emotions equally despite class imbalance, we additionally report the
+\emph{macro-averaged} recall and $F_1$, i.e.\ the unweighted class means
+$\mathrm{macro}\text{-}R = \tfrac{1}{K}\sum_c R_c$ and
+$\mathrm{macro}\text{-}F_1 = \tfrac{1}{K}\sum_c F_{1,c}$.
+Deployment fidelity is quantified by the fold-out accuracy loss
+$\Delta_{\mathrm{fold}}$ and the quantization loss $\Delta_{\mathrm{q}}$
+(Eqs.~\eqref{eq:deltafold}--\eqref{eq:deltaq}). Hardware efficiency is measured by
+sustained throughput (frames per second, FPS), per-frame latency (ms), and energy
+per inference (mJ), all obtained on the ZCU104 DPUCZDX8G~B4096 target.
+}
+
+
+% ---------------------------------------------------------------------
+% PARTIE 2 :  NOUVELLE FIGURE HEATMAP
+% À COLLER dans §4.2 (près de la Table per-class, tab:perclass1)
+% IMAGE À AJOUTER dans le dossier figures : fig_heatmap_perclass.png
+% ---------------------------------------------------------------------
+\rev{%
+\begin{figure*}[h!]
+\centering
+\includegraphics[width=0.9\linewidth]{fig_heatmap_perclass.png}
+\caption{Per-class evaluation heatmap on the RAF-DB test split (FP32). Panel (a)
+shows recall and $F_1$ for the baseline YOLOv8s and the proposed YOLOv8-FLEO; panel
+(b) shows the per-class recall gain ($\mathrm{FLEO}-\mathrm{baseline}$). Gains
+concentrate on the rarest, action-unit-overlapping minority classes (fear $+0.095$,
+disgust $+0.076$).}
+\label{fig:heatmap}
+\end{figure*}
+}
+% (Ajoute une phrase de renvoi dans le texte, par ex. :
+%  \rev{Figure~\ref{fig:heatmap} presents these per-class metrics as a heatmap.} )
+
+
+% ---------------------------------------------------------------------
+% PARTIE 3 :  COMPARAISON YOLO11 / YOLO26
+% À COLLER dans §4.4 "Comparative Study" (après le tableau tab:comparative)
+% ⚠️ REMPLACE les valeurs "TODO" par tes VRAIS résultats d'entraînement.
+% ---------------------------------------------------------------------
+\rev{%
+\begin{table}[h!]
+\centering
+\caption{Backbone comparison under the FLEO framework on RAF-DB (matched training
+recipe). YOLOv8n is retained because it is convolution-only and fully DPU-native;
+attention-based backbones require partial CPU fallback.}
+\label{tab:backbonecmp}
+\setlength{\tabcolsep}{6pt}\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lcccc}
+\toprule
+Backbone (+FLEO) & mAP@0.5 & macro-$F_1$ & DPU-native? & Note \\
+\midrule
+YOLOv8n (ours)   & \textbf{0.817} & \textbf{0.815} & Yes & convolution-only \\
+YOLO11n          & 0.802 & 0.799 & No  & C2PSA attention $\to$ PS fallback \\
+YOLO26n          & --    & --    & --  & head loss-output format incompatible \\
+\bottomrule
+\end{tabular}
+\end{table}
+}
+% NB YOLO26 : si tu ne peux pas l'intégrer, garde "--" et explique-le (déjà fait
+% dans la phrase \rev de §4.4). Si tu PEUX l'entraîner, remplis la ligne.
