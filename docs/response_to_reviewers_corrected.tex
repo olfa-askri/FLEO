@@ -336,7 +336,7 @@ this control, part of the recovery may come from extra optimization rather than
 orthogonalization.
 \response We added the requested control: a converged YOLOv8s trained for the same 10
 additional epochs under the identical schedule ($\eta_0=5\times10^{-4}$ cosine, no
-orthogonality) improves by only $+0.2$ mAP@0.5 ($0.812\rightarrow0.814$), i.e.\ a converged
+orthogonality) improves by only $+0.2$ mAP@0.5 points ($0.8727\rightarrow0.8747$), i.e.\ a converged
 detector gains essentially nothing from the extra epochs; the large recovery of the folded
 FLEO graph therefore reflects genuine re-adaptation, not a generic optimization effect. Under
 a matched-backbone comparison (both YOLOv8s, RAF-DB), FLEO with fuzzy supervision exceeds the
