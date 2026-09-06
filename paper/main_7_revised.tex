@@ -386,7 +386,7 @@ To guarantee that distinct emotion categories are structurally distinguishable w
 X_{\text{sub}} = \text{split}\left(\text{Conv}_{1\times1}(X)\right) = \{X_1, X_2, \dots, X_K\},
 \label{eq:subspace_split}
 \end{equation}
-where each subspace representation $X_k \in \mathbb{R}^{d \times H \times W}$ has a reduced dimensionality of $d = c_1/K$. To eliminate inter-class feature redundancy and enforce strict mutual independence, a differentiable Gram-Schmidt orthogonalization operator transforms the raw split features $\{X_k\}_{k=1}^{K}$ into an orthogonalized basis set $\{\tilde{U}_k\}_{k=1}^{K}$. Sequentially, for each subspace index $k = 1, \dots, K$:
+where each subspace representation $X_k \in \mathbb{R}^{d \times H \times W}$ has a reduced dimensionality of $d = c_1/K$. \rev{We set the subspace width to \mbox{$d = 8$}, chosen as an accuracy-versus-cost balance rather than as an accuracy optimum: as detailed in the ablation of Section~\ref{sec:foldresult} (Table~\ref{tab:dablation}), recognition accuracy is largely insensitive to \mbox{$d$}, whereas the per-site FLEO parameter cost grows steeply with it.} To eliminate inter-class feature redundancy and enforce strict mutual independence, a differentiable Gram-Schmidt orthogonalization operator transforms the raw split features $\{X_k\}_{k=1}^{K}$ into an orthogonalized basis set $\{\tilde{U}_k\}_{k=1}^{K}$. Sequentially, for each subspace index $k = 1, \dots, K$:
 \begin{equation}
 \tilde{U}_1 = X_1, \qquad \tilde{U}_k = X_k - \sum_{j=1}^{k-1} \frac{\langle X_k, \tilde{U}_j \rangle}{\langle \tilde{U}_j, \tilde{U}_j \rangle} \tilde{U}_j,
 \label{eq:gram_schmidt}
