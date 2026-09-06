@@ -313,7 +313,7 @@ Within each insertion site, input features $X$ undergo a $1{\times}1$ spatial pr
 %%%%revised%%%%%
 \subsubsection{Fuzzy Emotion Labels}
 
-Facial emotions frequently exhibit subjective ambiguity such as subtle transitions between fear and surprise, or disgust and anger—that standard crisp, one-hot target vectors fail to capture adequately. To model this uncertainty, FLEO supervises the detector using a fuzzy membership distribution in the sense of Zadeh et al \citep{zadeh1965fuzzy}. Let $\mathcal{E}=\{e_1,\dots,e_K\}$ denote the set of $K=7$ discrete emotion classes. A fuzzy label is represented as a normalized membership function $\mu:\mathcal{E}\to[0,1]$, denoted vectorially as $\mu=(\mu_1,\dots,\mu_K)$, satisfying:
+Facial emotions frequently exhibit subjective ambiguity---such as subtle transitions between fear and surprise, or disgust and anger---that standard crisp, one-hot target vectors fail to capture adequately. To model this uncertainty, FLEO supervises the detector using a fuzzy membership distribution in the sense of Zadeh \citep{zadeh1965fuzzy}. Let $\mathcal{E}=\{e_1,\dots,e_K\}$ denote the set of $K=7$ discrete emotion classes. A fuzzy label is represented as a normalized membership function $\mu:\mathcal{E}\to[0,1]$, denoted vectorially as $\mu=(\mu_1,\dots,\mu_K)$, satisfying:
 \begin{equation}
 \mu_c\in[0,1],\qquad \sum_{c=1}^{K}\mu_c = 1,
 \qquad\text{i.e., } \mu\in\Delta^{K-1},
@@ -327,11 +327,7 @@ where $\Delta^{K-1}$ is the probability simplex and $\mu_c$ specifies the degree
 \mu_c=\frac{n_c+\alpha\pi_c}{\sum_{j=1}^{K}\!\bigl(n_j+\alpha\pi_j\bigr)},
 \label{eq:fuzzymu}
 \end{equation}
-\rev{where $n_c$ denotes the number of annotator votes for class $c$, $\alpha > 0$ is the smoothing hyperparameter, and $\pi = (\pi_1, \dots, \pi_K)$ acts as a prior distribution over the emotion classes.}
-
-\rev{where \mbox{$\mu_c$} is the fuzzy membership for class \mbox{$c$},
-\mbox{$n_c$} the vote count, \mbox{$\alpha>0$} the smoothing strength,
-\mbox{$\pi$} the prior over the \mbox{$K$} classes.}
+\rev{where $\mu_c$ is the fuzzy membership for class $c$, $n_c$ the number of annotator votes for class $c$, $\alpha > 0$ the smoothing strength, and $\pi = (\pi_1, \dots, \pi_K)$ the prior distribution over the $K$ emotion classes.}
 
 
 %=======ajouté=======
