@@ -1,0 +1,260 @@
+\section{Proposed FER-based Embedded YOLOv8-FLEO framework}\label{sec:method}
+%==============================================================================
+This section presents the comprehensive design of the proposed Facial Emotion Recognition (FER) embedded system, bridging advanced deep learning architectural innovations with efficient hardware deployment. As illustrated in the system overview by Fig. \ref{fig:proposed_framework}, our approach couples a software-side modification of the YOLOv8 architecture with a specialized hardware acceleration pipeline tailored for Xilinx FPGA platforms.
+
+\begin{figure*}[h!]
+  \centering
+  \includegraphics[width=\linewidth]{proposed-architecture.png}
+  \caption{Overview of the proposed YOLOv8-FLEO framework and hardware-software co-design deployment pipeline: \textbf{(A)} High-level system architecture integrating the proposed FLEO block within the YOLOv8 neck for Facial Emotion Recognition (FER). \textbf{(B)} Detailed schematic of the FLEO block logic, highlighting the dual-path topology comprising channel gating and Gram-Schmidt orthogonalization, alongside training-time fuzzy label supervision modules. \textbf{(C)} Export-time fold-out graph rewrite, illustrating the systematic excision of non-native training apparatus to yield a streamlined, hardware-compatible inference graph. \textbf{(D)} Target FPGA deployment pipeline on the ZCU104 platform featuring INT8 post-training quantization, model compilation, and optimized execution across the B4096 DPU and processing system (PS).}
+    \label{fig:proposed_framework}
+\end{figure*}
+
+Specifically, the methodology is structured around two core dimensions: first, the integration of the \rev{FLEO block} within the network neck, combining fuzzy emotion labels and Gram-Schmidt orthogonalization to learn separable, ambiguity-aware per-emotion subspaces (Panels~A and B); second, an export-time fold-out graph rewrite mechanism that eliminates non-native training apparatus to yield a streamlined, DPU-native inference graph, which is subsequently quantized using INT8 post-training quantization and compiled for real-time execution on the Zynq UltraScale+ ZCU104 hardware platform (Panels~C and D). The interplay between these software training structures and hardware execution constraints is unified through the fold-out accuracy loss $\Delta_{\mathrm{fold}}$, quantifying the trade-off introduced during graph optimization.
+
+%========================Revised section=======================================
+\subsection{Proposed YOLOv8-FLEO framework}\label{sec:soft}
+%=========================================================================
+
+To address the intrinsic ambiguity and overlapping characteristics of facial expression classes in real-world Facial Emotion Recognition (FER), we introduce the YOLOv8-FLEO framework architecture. We preserve the foundational YOLOv8s backbone (CSPDarknet) and detection heads (P3, P4, P5) unchanged, while seamlessly integrating the proposed Fuzzy Label and Emotion Orthogonalization (FLEO) blocks into the FPN+PANet neck at levels P3, P4, and P5 (Fig.~\ref{fig:fleoblock1}). The FLEO block is designed as a drop-in neck module that preserves channel dimensions through a residual addition, ensuring that all downstream concatenation paths and detection heads remain fully intact. 
+
+Within each insertion site, input features $X$ undergo a $1{\times}1$ spatial projection mapping them to $K\!\cdot\!d$ channels, where $K{=}7$ represents the target emotion categories and $d$ denotes the width per emotion subspace. Processing proceeds across a parallel dual-path topology comprising a top channel gating path and a main orthogonalization path. The projected feature maps are split into $K$ distinct subspaces $\{U_c\}_{c=1}^{K}$, which are subsequently processed by a differentiable Gram-Schmidt orthogonalization stage to enforce mutual subspace independence. In parallel, the top gating path computes a squeeze-and-excitation attention weighting defined as $s = \sigma\bigl(\mathrm{Conv}_{1\times1}(\mathrm{AvgPool}(X'))\bigr)$. The gated outputs are fused through a $3{\times}3$ convolution, combined with the original input via a residual summation, and directed toward a training-time per-subspace binding head.
+
+\begin{figure*}[h!]
+    \centering
+    \includegraphics[width=\linewidth]{proposed-yoloFLEO.png}
+    \caption{Overview of the proposed YOLOv8-FLEO framework architecture and detailed schematic of the FLEO block logic, illustrating the dual-path feature processing, Gram-Schmidt orthogonalization, and training-time fuzzy supervision apparatus.}
+    \label{fig:fleoblock1}
+\end{figure*}
+
+%%%%revised%%%%%
+\subsubsection{Fuzzy Emotion Labels}
+
+Facial emotions frequently exhibit subjective ambiguity---such as subtle transitions between fear and surprise, or disgust and anger---that standard crisp, one-hot target vectors fail to capture adequately. To model this uncertainty, FLEO supervises the detector using a fuzzy membership distribution in the sense of Zadeh \citep{zadeh1965fuzzy}. Let $\mathcal{E}=\{e_1,\dots,e_K\}$ denote the set of $K=7$ discrete emotion classes. A fuzzy label is represented as a normalized membership function $\mu:\mathcal{E}\to[0,1]$, denoted vectorially as $\mu=(\mu_1,\dots,\mu_K)$, satisfying:
+\begin{equation}
+\mu_c\in[0,1],\qquad \sum_{c=1}^{K}\mu_c = 1,
+\qquad\text{i.e., } \mu\in\Delta^{K-1},
+\label{eq:fuzzyset}
+\end{equation}
+where $\Delta^{K-1}$ is the probability simplex and $\mu_c$ specifies the degree of membership of a facial image in emotion category $e_c$. When annotator consensus is absolute, $\mu$ collapses to the standard vertex one-hot vector $\mathbf{1}_{y}$.
+ \rev{Here $y$ denotes the ground-truth class index and $\mathbb{1}[\cdot]$ the indicator function, equal to $1$ when its argument holds and $0$ otherwise.}
+ 
+ Given $n_c$ annotator votes for emotion class $c$, the empirical membership is computed via additively-smoothed vote shares:
+\begin{equation}
+\mu_c=\frac{n_c+\alpha\pi_c}{\sum_{j=1}^{K}\!\bigl(n_j+\alpha\pi_j\bigr)},
+\label{eq:fuzzymu}
+\end{equation}
+\rev{where $\mu_c$ is the fuzzy membership for class $c$, $n_c$ the number of annotator votes for class $c$, $\alpha > 0$ the smoothing strength, and $\pi = (\pi_1, \dots, \pi_K)$ the prior distribution over the $K$ emotion classes.}
+
+
+%=======ajouté=======
+\rev{Both RAF-DB and FER2013 provide a single label per image; we use no
+multi-annotator metadata. Eq.~\eqref{eq:fuzzymu} is the general membership
+definition in which \mbox{$n_c$} is the vote count for class~\mbox{$c$}. For a
+single-label corpus \mbox{$n_c=\mathbb{1}[c=y]$}, so Eq.~\eqref{eq:fuzzymu}
+reduces to the additively-smoothed soft target
+\mbox{$\mu_c=(\mathbb{1}[c=y]+\alpha\pi_c)/(1+\alpha)$}, generated
+algorithmically from the ground-truth label, the smoothing strength
+\mbox{$\alpha$}, and the prior \mbox{$\pi$}, with no annotator votes. Although
+RAF-DB was originally crowdsourced with multiple independent annotators, the
+standard public split used here distributes only the aggregated single label;
+the per-image vote counts are not released and therefore cannot be used to
+derive \mbox{$\mu$}. We set \mbox{$\alpha=0.1$} (the standard label-smoothing
+value) and take \mbox{$\pi$} as the empirical class-frequency prior. Softening
+the one-hot target reflects the intrinsic ambiguity of facial expressions
+(confusable pairs such as fear/disgust share action units) and improves
+calibration on minority classes. The contribution does not lie in the
+construction of the soft target itself, which reduces to additive label
+smoothing in the single-label case, but in its role as a graded projection onto
+the mutually orthogonal per-emotion subspaces: it is the coupling of fuzzy
+supervision with subspace orthogonalization, bound through the binding head,
+that concentrates the gains on confusable minority classes such as fear and
+disgust, an effect that additive smoothing alone does not produce.}
+
+%===============
+
+\rev{The fuzzy label of each image is thus built in three deterministic steps: (i) start from
+the one-hot vector \mbox{$\mathbb{1}[c=y]$} of the ground-truth class; (ii) add the prior term
+\mbox{$\alpha\pi_c$}, that is, the empirical class-frequency prior scaled by the smoothing
+strength; (iii) renormalise by \mbox{$1+\alpha$} so that \mbox{$\mu$} sums to one and lies on
+\mbox{$\Delta^{K-1}$}. The value \mbox{$\alpha=0.1$} is small enough to preserve the dominance
+of the ground-truth class, which retains a mass above \mbox{$0.9$}, while injecting a
+controlled amount of ambiguity; the empirical class-frequency prior \mbox{$\pi$} directs the
+released mass according to the actual class distribution rather than a uniform assumption,
+which limits over-smoothing of the already scarce minority classes such as fear and disgust,
+precisely the categories the FLEO block is designed to disambiguate.}
+
+To optimize the network under fuzzy supervision, the classification loss $\mathcal{L}_{\text{cls}}$ is formulated as the cross-entropy between the fuzzy target distribution $\mu$ and the predicted posterior probability vector $p = (p_1, \dots, p_K)$:
+\begin{equation}
+\mathcal{L}_{\text{cls}} = -\sum_{c=1}^{K} \mu_c \log p_c,
+\label{eq:fuzzy_loss}
+\end{equation}
+\rev{where \mbox{$\mu_c$} is the fuzzy target and \mbox{$p_c$} the predicted posterior for class~\mbox{$c$}.} This is further supplemented during training by a binding divergence loss $\mathcal{L}_{\text{bind}} = D_{\text{KL}}(\mu \parallel \sigma(b))$ to align subspace representations with graded membership targets.
+
+%%%%revised%%%%%
+\subsubsection{Emotion-Orthogonalized Subspaces}
+
+To guarantee that distinct emotion categories are structurally distinguishable within the feature space, FLEO allocates dedicated coordinate subspaces to each emotion and enforces strict mutual orthogonality. Let the input feature tensor from the network neck be denoted by $X \in \mathbb{R}^{C \times H \times W}$. FLEO projects and splits this feature tensor into $K$ distinct sub-features corresponding to the target emotion categories:
+\begin{equation}
+X_{\text{sub}} = \text{split}\left(\text{Conv}_{1\times1}(X)\right) = \{X_1, X_2, \dots, X_K\},
+\label{eq:subspace_split}
+\end{equation}
+where each subspace representation $X_k \in \mathbb{R}^{d \times H \times W}$ has a reduced dimensionality of $d = c_1/K$. \rev{We set the subspace width to \mbox{$d = 8$}, chosen as an accuracy-versus-cost balance rather than as an accuracy optimum: as detailed in the ablation of Section~\ref{sec:foldresult} (Table~\ref{tab:dablation}), recognition accuracy is largely insensitive to \mbox{$d$}, whereas the per-site FLEO parameter cost grows steeply with it.} To eliminate inter-class feature redundancy and enforce strict mutual independence, a differentiable Gram-Schmidt orthogonalization operator transforms the raw split features $\{X_k\}_{k=1}^{K}$ into an orthogonalized basis set $\{\tilde{U}_k\}_{k=1}^{K}$. Sequentially, for each subspace index $k = 1, \dots, K$:
+\begin{equation}
+\tilde{U}_1 = X_1, \qquad \tilde{U}_k = X_k - \sum_{j=1}^{k-1} \frac{\langle X_k, \tilde{U}_j \rangle}{\langle \tilde{U}_j, \tilde{U}_j \rangle} \tilde{U}_j,
+\label{eq:gram_schmidt}
+\end{equation}
+where $\langle \cdot, \cdot \rangle$ denotes the inner product operator evaluated across spatial and channel dimensions, guaranteeing that $\langle \tilde{U}_i, \tilde{U}_j \rangle = 0$ for all $i \neq j$. 
+
+Consequently, the fuzzy label functions as a graded projection onto these orthogonal axes, combining class separability with ambiguity-aware supervision. The final output feature map $Y$ of the FLEO block combines the residual stream with the modulated orthogonalized features:
+\begin{equation}
+Y = X + \text{Conv}_{3\times3}\left( \bigoplus_{k=1}^{K} \left( \tilde{U}_k \odot s \right) \right),
+\label{eq:fleo_output}
+\end{equation}
+where $s$ is the spatial-channel attention gate derived from the auxiliary pooling path, $\odot$ represents element-wise scaling, and $\bigoplus$ denotes feature concatenation followed by final channel mixing.
+
+%%%%revised%%%%%
+\subsubsection{Training Process and Loss Formulation}
+
+During the training phase, the augmented network optimizes a joint multi-task objective function that integrates fuzzy classification performance, subspace orthogonality regularization, and feature-to-label binding alignment. Let $p = (p_1, \dots, p_K)$ denote the vector of predicted detector class posteriors, $b$ represent the per-subspace binding logits emitted by the training-time binding head, and $\hat{U} \in \mathbb{R}^{(K \cdot d) \times K}$ signify the stacked matrix of orthogonalized feature bases. The overall training loss $\mathcal{L}$ is formulated as $\mathcal{L} = \mathcal{L}_{\text{cls}} + \lambda_{o} \mathcal{L}_{\text{orth}} + \lambda_{b} \mathcal{L}_{\text{bind}}$, which expands to:
+\begin{equation}
+\mathcal{L} = -\sum_{c=1}^{K}\mu_c\log p_c
+\;+\;\lambda_{o}\,\bigl\lVert\hat{U}^{\!\top}\hat{U}-I\bigr\rVert_F^{2}
+\;+\;\lambda_{b}\,\mathrm{KL}\!\bigl(\mu\,\Vert\,\sigma(b)\bigr),
+\label{eq:fuzzyloss}
+\end{equation}
+where the fuzzy classification loss component $-\sum_{c=1}^{K}\mu_c\log p_c$ measures the cross-entropy between the soft fuzzy target distribution $\mu \in \Delta^{K-1}$ and the predicted class posterior probability $p$ to adequately handle subjective emotional ambiguity. The orthogonality regularization term $\bigl\lVert\hat{U}^{\!\top}\hat{U}-I\bigr\rVert_F^2$ is the squared Frobenius norm penalty scaled by hyperparameter $\lambda_{o}$, enforcing strict mutual orthogonality among the subspace representation bases against the identity matrix $I$ to eliminate inter-class feature redundancy. Furthermore, the binding divergence loss term $\mathrm{KL}\bigl(\mu\,\Vert\,\sigma(b)\bigr)$ denotes the Kullback-Leibler divergence scaled by $\lambda_{b}$ (where $\sigma$ represents the activation mapping), which directly binds the intermediate subspace representations to the graded ground-truth fuzzy membership distribution during training.
+
+As highlighted in Fig.~\ref{fig:fleoblock1}, the fuzzy-label calculation is a training-only supervision signal. \rev{The Gram--Schmidt operator, by contrast, is load-bearing at inference: naively removing it collapses RAF-DB accuracy from \mbox{$0.858$} to \mbox{$0.073$}. Deployment is therefore a two-step process---a fold-out rewrite removes the DPU-hostile operator, and a short post-fold fine-tuning (10 epochs, no orthogonality) lets the remaining convolutions re-absorb its function, recovering accuracy to \mbox{$0.849$}. The benefit is thus internalized into the weights by fine-tuning rather than obtained for free, while the exported graph retains only DPU-native primitives.}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%revised%%%%%
+%================================revised===================================
+\subsection{YOLOv8-FLEO framework DPU-Native Deployment on the ZCU104}
+\label{sec:hard}
+%=========================================================================
+Deploying advanced deep learning detectors onto resource-constrained edge computing platforms---such as the Xilinx ZCU104 evaluation board equipped with the Deep Learning Processing Unit (DPUCZDX8G B4096 core)---requires strict adherence to hardware operator compatibility contracts and on-chip memory bandwidth allocations \citep{bib25}. While the proposed YOLOv8-FLEO framework delivers superior accuracy and ambiguity handling in feature space, its training-time constructs introduce non-native mathematical operations that violate the fixed-function execution constraints of hardware processing engines, thereby triggering costly CPU-to-DPU context switches and inter-subgraph serialization over Direct Memory Access (DMA) channels. To bridge this algorithmic-hardware gap and maintain real-time frame rates under strict power and thermal budgets, we establish a robust hardware-software co-design deployment methodology governed by a four-stage pathway (Alg.~\ref{alg:foldout1}): (1) multi-task training, (2) export-time graph rewriting (fold-out), (3) fold-finetuning, and (4) INT8 post-training quantization and B4096 binary compilation. The efficacy, stability, and representational fidelity of this deployment pipeline are quantitatively evaluated through the fold-out accuracy loss metric $\Delta_{\mathrm{fold}}$ alongside end-to-end latency profiling.
+
+%%%%revised%%%%%
+\subsubsection{Operator-Contract Analysis and Hardware Bottleneck Identification}\label{sec:compat}
+
+The operator inventory presented in Table~\ref{tab:ops1} contrasts the computational blocks of the YOLOv8-FLEO architecture against the hardware operator execution capabilities of the Xilinx DPUCZDX8G (B4096 core) contract. A detailed, this classification highlights the division between hardware-accelerated layers and training-exclusive or non-native components.
+
+\begin{table}[!h]
+\centering
+\caption{Operator inventory of the augmented detector versus the DPUCZDX8G contract.}
+\label{tab:ops1}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lcl}
+\toprule
+Operator & DPU-Native & Mitigation Strategy \\
+\midrule
+$\mathrm{Conv}_{1\times1}$ projection & \cmark & -- \\
+Channel split / concatenation & \cmark & -- \\
+$\mathrm{Conv}_{3\times3}$ fusion & \cmark & -- \\
+AvgPool + $\sigma$ gate (SE) & \cmark & -- \\
+Elementwise $\odot$, residual $+$ & \cmark & -- \\
+Global average pooling head & \cmark & Preferred over Flatten+FC \\
+\midrule
+Division (GS projection) & \xmark & Folded out at export\\
+Reciprocal $\sqrt{\cdot}$ (GS norm.) & \xmark & Folded out at export  \\
+Sequential recurrence over $k$ & \xmark & Folded out at export \\
+Binding head (training only) & n/a & Absent from inference graph \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+As visualized in Fig.~\ref{fig:contract1}, standard convolutional layers, channel split and concatenation operators, global average pooling, spatial-channel squeeze-and-excitation (SE) attention gates, and residual additions map seamlessly to high-throughput DPU execution units. However, the Gram-Schmidt orthogonalization stage introduces critical architectural incompatibilities that obstruct direct hardware compilation. Specifically, three mathematical operations violate the DPU operator contract:
+\begin{itemize}
+    \item \emph{Dynamic Division}: The orthogonal projection coefficient calculation $\frac{\langle \tilde{v}_k, u_j \rangle}{\lVert u_j \rVert_2^2 + \varepsilon}$ requires unsupported division hardware.
+    \item \emph{Reciprocal Square Root}: The vector normalization step $e_k = \frac{u_k}{\lVert u_k \rVert_2 + \varepsilon}$ involves inverse square root computations.
+    \item \emph{Sequential Recurrence}: The recursive dependency $u_k = f(u_{1:k-1})$ necessitates serial inter-channel calculations across subspace index $k$.
+\end{itemize}
+
+Because the DPU architecture relies on massively parallel, feed-forward matrix multiplication engines without native support for dynamic division, reciprocal square roots, or inter-channel sequential loops, a literal port compiles these non-native nodes into a CPU-mapped subgraph on the Processing System (PS) sandwiched between accelerator subgraphs. This induces severe memory-transfer bottlenecks and pipeline serialization across the ARM processor and programmable logic. To eliminate this bottleneck, we implement a specialized graph rewrite strategy.
+
+\begin{figure*}[!h]
+  \centering
+  \includegraphics[width=\linewidth]{fig_trained_graph.png}
+  \caption{Operator inventory of the trained FLEO site. Every stage is DPU-native except the Gram-Schmidt orthogonalization (orange region), whose reciprocal square root, division, and sequential recurrence force a CPU processing system (PS) fallback.}
+  \label{fig:contract1}
+\end{figure*}
+
+%%%%revised%%%%%
+\subsubsection{Export-Time Graph Rewrite and Fold-Out Mechanics}\label{sec:foldout}
+
+During the operational inference phase, the fully trained FLEO block computes the comprehensive feature transformation mapping input representations to enhanced feature maps, defined formally as:
+\begin{equation}
+Y = \mathrm{Conv}_{3\times3}\!\big(\mathrm{GS}(\mathrm{Conv}_{1\times1}(X)) \odot s\big) + X,
+\label{eq:full}
+\end{equation}
+where $\mathrm{GS}(\cdot)$ denotes the differentiable Gram-Schmidt orthogonalization operator enforcing strict inter-class separation, and $s$ represents the spatial-channel squeeze-and-excitation attention gate derived dynamically from the projected feature intermediate $X' = \mathrm{Conv}_{1\times1}(X)$. Although this complete architecture optimizes emotional separability effectively during backpropagation, its embedded normalization and division operators cannot be executed on fixed-function hardware accelerators. To ensure total compatibility with the DPU execution contract without discarding the rich discriminative feature geometry learned during training, we define an export-time graph rewrite operator $\mathcal{R}$. This deterministic rewrite operator systematically excises and replaces the non-native Gram-Schmidt module with a transparent identity mapping, yielding the streamlined folded inference graph evaluated as:
+\begin{equation}
+\mathcal{R}:\quad
+Y_{\mathrm{fold}} = \mathrm{Conv}_{3\times3}\!\big(\mathrm{Conv}_{1\times1}(X) \odot s\big) + X,
+\label{eq:folded}
+\end{equation}
+\rev{where $Y_{\mathrm{fold}}$ is the output of the folded (operator-free) inference graph produced by the rewrite operator $\mathcal{R}$, and $\mathrm{Conv}_{1\times1}$, $\mathrm{Conv}_{3\times3}$, $X$, $s$ and $\odot$ are as defined for Eq.~\eqref{eq:full}.} This purges all non-native arithmetic instructions from the execution graph while strictly preserving the underlying learned weight tensors $\phi \subseteq \theta$, as visually contrasted in Fig.~\ref{fig:rewrite2}.
+
+\begin{figure}[!h]
+  \centering
+  \includegraphics[width=0.75\linewidth]{trained-folded-graph.png}
+  \caption{The fold-out rewrite operator $\mathcal{R}$. (a) The trained graph contains the non-native Gram-Schmidt stage. (b) At export, $\mathcal{R}$ excises the module while preserving learned weights, ensuring every operator is DPU-native ($\Delta_{\mathrm{fold}}$, Eq.~\eqref{eq:deltafold}).}
+  \label{fig:rewrite2}
+\end{figure}
+
+Although the application of rewrite operator $\mathcal{R}$ successfully guarantees continuous single-subgraph DPU execution without CPU interruptions,\rev{removing the explicit orthogonalization operator post-training severely disrupts the trained forward path---RAF-DB accuracy collapses from $0.858$ to $0.073$ (Table~\ref{tab:accuracy})---because the trained weights were fitted with Gram--Schmidt applied at every forward pass.}
+To rigorously quantify this performance penalty prior to hardware compilation, we define the fold-out accuracy degradation metric $\Delta_{\mathrm{fold}}$, measured comprehensively under both full-precision FP32 and quantized INT8 execution modes as the Eq. \eqref{eq:deltafold}.
+\begin{equation}
+\Delta_{\mathrm{fold}} = \mathrm{Acc}\big(\text{full graph, Eq.~\eqref{eq:full}}\big)
+- \mathrm{Acc}\big(\text{folded graph, Eq.~\eqref{eq:folded}}\big).
+\label{eq:deltafold}
+\end{equation}
+\rev{where $\mathrm{Acc}(\cdot)$ denotes the top-1 recognition accuracy on the RAF-DB test split, so that $\Delta_{\mathrm{fold}}$ is the accuracy gap between the full trained graph (Eq.~\eqref{eq:full}) and the folded, operator-free graph (Eq.~\eqref{eq:folded}), evaluated under both FP32 and INT8 execution.}
+\rev{
+Crucially, because the feature manifold was pre-aligned during multi-task training, this collapse is \emph{recoverable at low cost}: a lightweight fold-finetuning phase (Alg.~\ref{alg:foldout1}, line~\ref{alg:ft}) of $T=10$ epochs on the operator-free graph re-optimizes the downstream convolutions so they re-absorb the orthogonalization, reducing the fold-out penalty from an initial $\Delta_{\mathrm{fold}}=0.785$ in accuracy ($0.858\!\rightarrow\!0.073$) to a negligible residual $\Delta_{\mathrm{fold}}=0.009$. The exported graph thus retains only DPU-native primitives while preserving the learned discriminative geometry.}
+
+%%%%revised%%%%%
+\subsubsection{INT8 Quantization and B4096 Compilation Pipeline}\label{sec:quant}
+
+Following fold-finetuning, the optimized FP32 checkpoint proceeds to the quantization and compilation toolflow illustrated in Alg.~\ref{alg:foldout1} and Fig.~\ref{fig:toolflow1}. The Vitis AI quantizer executes post-training quantization (PTQ), converting 32-bit floating-point weights and activations into fixed-point INT8 representations using optimal power-of-two scale factors calibrated over a representative subset of 200 calibration images drawn from the training distribution. If the resulting quantization accuracy drop, defined as:
+\begin{equation}
+\Delta_{\mathrm{q}} = \mathrm{Acc}_{\mathrm{FP32}} - \mathrm{Acc}_{\mathrm{INT8}},
+\label{eq:deltaq}
+\end{equation}
+exceeds a pre-registered application threshold, the pipeline automatically invokes quantization-aware training (QAT) as a robust fallback mechanism \citep{bib9}. \rev{Here $\mathrm{Acc}_{\mathrm{FP32}}$ and $\mathrm{Acc}_{\mathrm{INT8}}$ denote the recognition accuracy of the folded graph evaluated in full-precision floating point and in INT8 fixed point, respectively.}
+
+Finally, the Vitis AI compiler maps the quantized graph file $g^q$ to the target-specific instruction stream for the DPUCZDX8G B4096 core, generating a highly optimized `.xmodel` binary. Deployed within a multi-threaded VART runtime application, the resulting system executes the entire backbone, neck, and detection head as contiguous hardware accelerator subgraphs on the ZCU104 programmable logic, achieving real-time inference performance for robust facial emotion recognition.
+
+\begin{figure*}[!h]
+  \centering
+  \includegraphics[width=0.85\linewidth]{deployement.png}
+  \caption{Hardware deployment toolflow: FP32 trained checkpoint, fold-out rewrite $\mathcal{R}$, Vitis AI INT8 post-training quantization (PTQ), B4096 compilation, and execution via the VART runtime environment.}
+  \label{fig:toolflow1}
+\end{figure*}
+
+\begin{algorithm}
+\DontPrintSemicolon
+\caption{FLEO fold-out deployment methodology}
+\label{alg:foldout1}
+\KwIn{Training set $\mathcal{D}$; YOLOv8s backbone $f_\theta$; emotion subspaces $\{U_k\}_{k=1}^{C}$; orthogonality weight $\lambda_o$; DPU architecture file $\mathcal{A}$}
+\KwOut{Compiled INT8 model $\mathcal{M}$ optimized for the B4096 DPU}
+\tcp{1. Train the orthogonalized graph (Gram-Schmidt active)}
+\For{minibatch $(X,y)\in\mathcal{D}$}{
+  $\hat{U}\leftarrow\textsc{GramSchmidt}(U)$\tcp*{div/sqrt/recurrence handled on PS}
+  $\mathcal{L}\leftarrow\mathcal{L}_{\det}(f_\theta(X;\hat U),y)+\lambda_o\,\lVert \hat U^\top\hat U-I\rVert_F^2$\;
+  $\theta\leftarrow\theta-\eta\nabla_\theta\mathcal{L}$\;
+}
+\tcp{2. Export-time graph rewrite $\mathcal{R}$ (weight-preserving)}
+$g_\phi \leftarrow \mathcal{R}(f_\theta)$\tcp*{delete GS stage; weights $\phi\subseteq\theta$ preserved}
+\tcp{3. Fold-finetune the operator-free graph}
+\For(\tcp*[f]{$T\!=\!10$ epochs}){epoch $=1\ldots T$}{\label{alg:ft}
+  $\phi\leftarrow\phi-\eta\nabla_\phi\mathcal{L}_{\det}(g_\phi(X),y)$\;
+}
+\tcp{4. INT8 quantization and compilation for the DPU}
+$g^{q}\leftarrow\textsc{PTQ}_{\text{INT8}}(g_\phi,\ \text{200 calibration images})$\;
+$\mathcal{M}\leftarrow\textsc{vai\_c\_xir}(g^{q},\mathcal{A})$\tcp*{compile to single core, 3 DPU subgraphs}
+\Return $\mathcal{M}$\;
+\end{algorithm}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
