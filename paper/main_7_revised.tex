@@ -477,7 +477,7 @@ where $\mathrm{GS}(\cdot)$ denotes the differentiable Gram-Schmidt orthogonaliza
 Y_{\mathrm{fold}} = \mathrm{Conv}_{3\times3}\!\big(\mathrm{Conv}_{1\times1}(X) \odot s\big) + X,
 \label{eq:folded}
 \end{equation}
-thereby purging all non-native arithmetic instructions from the execution graph while strictly preserving the underlying learned weight tensors $\phi \subseteq \theta$, as visually contrasted in Fig.~\ref{fig:rewrite2}. 
+\rev{where $Y_{\mathrm{fold}}$ is the output of the folded (operator-free) inference graph produced by the rewrite operator $\mathcal{R}$, and $\mathrm{Conv}_{1\times1}$, $\mathrm{Conv}_{3\times3}$, $X$, $s$ and $\odot$ are as defined for Eq.~\eqref{eq:full}.} This purges all non-native arithmetic instructions from the execution graph while strictly preserving the underlying learned weight tensors $\phi \subseteq \theta$, as visually contrasted in Fig.~\ref{fig:rewrite2}.
 
 \begin{figure}[!h]
   \centering
@@ -504,7 +504,7 @@ Following fold-finetuning, the optimized FP32 checkpoint proceeds to the quantiz
 \Delta_{\mathrm{q}} = \mathrm{Acc}_{\mathrm{FP32}} - \mathrm{Acc}_{\mathrm{INT8}},
 \label{eq:deltaq}
 \end{equation}
-exceeds a pre-registered application threshold, the pipeline automatically invokes quantization-aware training (QAT) as a robust fallback mechanism \citep{bib9}. 
+exceeds a pre-registered application threshold, the pipeline automatically invokes quantization-aware training (QAT) as a robust fallback mechanism \citep{bib9}. \rev{Here $\mathrm{Acc}_{\mathrm{FP32}}$ and $\mathrm{Acc}_{\mathrm{INT8}}$ denote the recognition accuracy of the folded graph evaluated in full-precision floating point and in INT8 fixed point, respectively.}
 
 Finally, the Vitis AI compiler maps the quantized graph file $g^q$ to the target-specific instruction stream for the DPUCZDX8G B4096 core, generating a highly optimized `.xmodel` binary. Deployed within a multi-threaded VART runtime application, the resulting system executes the entire backbone, neck, and detection head as contiguous hardware accelerator subgraphs on the ZCU104 programmable logic, achieving real-time inference performance for robust facial emotion recognition.
 
