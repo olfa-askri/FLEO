@@ -493,6 +493,7 @@ To rigorously quantify this performance penalty prior to hardware compilation, w
 - \mathrm{Acc}\big(\text{folded graph, Eq.~\eqref{eq:folded}}\big).
 \label{eq:deltafold}
 \end{equation}
+\rev{where $\mathrm{Acc}(\cdot)$ denotes the top-1 recognition accuracy on the RAF-DB test split, so that $\Delta_{\mathrm{fold}}$ is the accuracy gap between the full trained graph (Eq.~\eqref{eq:full}) and the folded, operator-free graph (Eq.~\eqref{eq:folded}), evaluated under both FP32 and INT8 execution.}
 \rev{
 Crucially, because the feature manifold was pre-aligned during multi-task training, this collapse is \emph{recoverable at low cost}: a lightweight fold-finetuning phase (Alg.~\ref{alg:foldout1}, line~\ref{alg:ft}) of $T=10$ epochs on the operator-free graph re-optimizes the downstream convolutions so they re-absorb the orthogonalization, reducing the fold-out penalty from an initial $\Delta_{\mathrm{fold}}=0.785$ in accuracy ($0.858\!\rightarrow\!0.073$) to a negligible residual $\Delta_{\mathrm{fold}}=0.009$. The exported graph thus retains only DPU-native primitives while preserving the learned discriminative geometry.}
 
