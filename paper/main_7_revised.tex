@@ -320,7 +320,7 @@ Facial emotions frequently exhibit subjective ambiguity---such as subtle transit
 \label{eq:fuzzyset}
 \end{equation}
 where $\Delta^{K-1}$ is the probability simplex and $\mu_c$ specifies the degree of membership of a facial image in emotion category $e_c$. When annotator consensus is absolute, $\mu$ collapses to the standard vertex one-hot vector $\mathbf{1}_{y}$.
- \rev{Here $y$ denotes the ground-truth class index and $\mathbb{1}[\cdot]$ the indicator function, equal to $1$ when its argument holds and $0$ otherwise.}
+ \rev{Here $y$ denotes the ground-truth class index and $\mathbf{1}[\cdot]$ the indicator function, equal to $1$ when its argument holds and $0$ otherwise.}
  
  Given $n_c$ annotator votes for emotion class $c$, the empirical membership is computed via additively-smoothed vote shares:
 \begin{equation}
@@ -334,9 +334,9 @@ where $\Delta^{K-1}$ is the probability simplex and $\mu_c$ specifies the degree
 \rev{Both RAF-DB and FER2013 provide a single label per image; we use no
 multi-annotator metadata. Eq.~\eqref{eq:fuzzymu} is the general membership
 definition in which \mbox{$n_c$} is the vote count for class~\mbox{$c$}. For a
-single-label corpus \mbox{$n_c=\mathbb{1}[c=y]$}, so Eq.~\eqref{eq:fuzzymu}
+single-label corpus \mbox{$n_c=\mathbf{1}[c=y]$}, so Eq.~\eqref{eq:fuzzymu}
 reduces to the additively-smoothed soft target
-\mbox{$\mu_c=(\mathbb{1}[c=y]+\alpha\pi_c)/(1+\alpha)$}, generated
+\mbox{$\mu_c=(\mathbf{1}[c=y]+\alpha\pi_c)/(1+\alpha)$}, generated
 algorithmically from the ground-truth label, the smoothing strength
 \mbox{$\alpha$}, and the prior \mbox{$\pi$}, with no annotator votes. Although
 RAF-DB was originally crowdsourced with multiple independent annotators, the
@@ -357,7 +357,7 @@ disgust, an effect that additive smoothing alone does not produce.}
 %===============
 
 \rev{The fuzzy label of each image is thus built in three deterministic steps: (i) start from
-the one-hot vector \mbox{$\mathbb{1}[c=y]$} of the ground-truth class; (ii) add the prior term
+the one-hot vector \mbox{$\mathbf{1}[c=y]$} of the ground-truth class; (ii) add the prior term
 \mbox{$\alpha\pi_c$}, that is, the empirical class-frequency prior scaled by the smoothing
 strength; (iii) renormalise by \mbox{$1+\alpha$} so that \mbox{$\mu$} sums to one and lies on
 \mbox{$\Delta^{K-1}$}. The value \mbox{$\alpha=0.1$} is small enough to preserve the dominance
